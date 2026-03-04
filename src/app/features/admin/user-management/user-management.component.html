@@ -1,0 +1,264 @@
+<div class="um-page">
+
+	<!-- ══════════════════════════════════════════
+		 PAGE HEADER
+	══════════════════════════════════════════ -->
+	<div class="um-header">
+		<div>
+			<h1 class="um-title">User Management</h1>
+			<p class="um-sub">Manage roles, permissions and account status</p>
+		</div>
+	</div>
+
+	<!-- ══════════════════════════════════════════
+		 STAT STRIP
+	══════════════════════════════════════════ -->
+	@if (stats$ | async; as s) {
+		<div class="stat-strip">
+			<div class="stat-chip stat-blue">
+				<span class="sc-ico">👥</span>
+				<div>
+					<div class="sc-val">{{ s.total }}</div>
+					<div class="sc-lbl">Total</div>
+				</div>
+			</div>
+			<div class="stat-chip stat-green">
+				<span class="sc-ico">✅</span>
+				<div>
+					<div class="sc-val">{{ s.active }}</div>
+					<div class="sc-lbl">Active</div>
+				</div>
+			</div>
+			<div class="stat-chip stat-indigo">
+				<span class="sc-ico">🛡️</span>
+				<div>
+					<div class="sc-val">{{ s.admins }}</div>
+					<div class="sc-lbl">Admins</div>
+				</div>
+			</div>
+			<div class="stat-chip stat-purple">
+				<span class="sc-ico">🎛️</span>
+				<div>
+					<div class="sc-val">{{ s.mods }}</div>
+					<div class="sc-lbl">Moderators</div>
+				</div>
+			</div>
+			<div class="stat-chip stat-amber">
+				<span class="sc-ico">🆕</span>
+				<div>
+					<div class="sc-val">{{ s.newWeek }}</div>
+					<div class="sc-lbl">This Week</div>
+				</div>
+			</div>
+		</div>
+	}
+
+	<!-- ══════════════════════════════════════════
+		 FILTER BAR
+	══════════════════════════════════════════ -->
+	<div class="filter-bar">
+		<!-- Search -->
+		<div class="search-wrap">
+			<svg class="search-ico" width="15" height="15" viewBox="0 0 24 24"
+				 fill="none" stroke="currentColor" stroke-width="2.2">
+				<circle cx="11" cy="11" r="8"/>
+				<line x1="21" y1="21" x2="16.65" y2="16.65"/>
+			</svg>
+			<input class="search-input" type="text" placeholder="Search by name, email or phone…"
+				   [(ngModel)]="searchQuery" (ngModelChange)="search$.next($event)"/>
+			@if (searchQuery) {
+				<button class="search-clear" (click)="searchQuery=''; search$.next('')">✕</button>
+			}
+		</div>
+
+		<!-- Role filter chips -->
+		<div class="role-chips">
+			<button class="rchip" [class.rchip-on]="roleFilter===''"
+					(click)="roleFilter=''; roleFilter$.next('')">All
+			</button>
+			<button class="rchip rchip-blue" [class.rchip-on]="roleFilter==='admin'"
+					(click)="roleFilter='admin'; roleFilter$.next('admin')">Admin
+			</button>
+			<button class="rchip rchip-purple" [class.rchip-on]="roleFilter==='moderator'"
+					(click)="roleFilter='moderator'; roleFilter$.next('moderator')">Moderator
+			</button>
+			<button class="rchip rchip-green" [class.rchip-on]="roleFilter==='user'"
+					(click)="roleFilter='user'; roleFilter$.next('user')">User
+			</button>
+		</div>
+
+		<!-- Page size -->
+		<div class="page-size-wrap">
+			<label class="psl">Rows</label>
+			<select class="ps-select" [(ngModel)]="pageSize"
+					(ngModelChange)="pageSize.set(+$event); page.set(1); search$.next(searchQuery)">
+				<option value="5">5</option>
+				<option value="10">10</option>
+				<option value="20">20</option>
+				<option value="50">50</option>
+			</select>
+		</div>
+	</div>
+
+	<!-- ══════════════════════════════════════════
+		 TABLE CARD
+	══════════════════════════════════════════ -->
+	<div class="table-card">
+
+		@if (loading()) {
+			<div class="tbl-loading">
+				<div class="spinner"></div>
+				<p>Loading users…</p>
+			</div>
+		}
+
+		@if (pagedUsers$ | async; as users) {
+			<!-- Table header meta -->
+			@if (_filtered.length > 0) {
+				<div class="tbl-meta">
+          <span>Showing <strong>{{ pageStart() }}–{{ pageEnd() }}</strong>
+            of <strong>{{ _filtered.length }}</strong> users</span>
+				</div>
+			}
+
+			<div class="tbl-wrap">
+				<table class="tbl">
+					<thead>
+					<tr>
+						<th class="th-user">User</th>
+						<th class="th-phone">Phone</th>
+						<th class="th-role">Role</th>
+						<th class="th-status">Status</th>
+						<th class="th-joined">Joined</th>
+						<th class="th-actions">Actions</th>
+					</tr>
+					</thead>
+					<tbody>
+						@for (user of users; track user.uid) {
+							<tr class="tbl-row">
+
+								<!-- ── User ── -->
+								<td class="td-user">
+									<div class="user-cell">
+										<div class="user-av" [style.background]="roleColor(user.role)">
+											{{ authorInitials(user.displayName) }}
+										</div>
+										<div class="user-info">
+											<span class="user-name">{{ user.displayName }}</span>
+											<span class="user-email">{{ user.email }}</span>
+										</div>
+									</div>
+								</td>
+
+								<!-- ── Phone ── -->
+								<td class="td-phone">{{ user.phone || '—' }}</td>
+
+								<!-- ── Role ── -->
+								<td class="td-role">
+									<div class="role-wrap">
+										<span class="role-dot" [style.background]="roleColor(user.role)"></span>
+										<select class="role-sel"
+												[value]="user.role"
+												(change)="changeRole(user, $any($event.target).value)"
+												[style.color]="roleColor(user.role)">
+											<option value="user">User</option>
+											<option value="moderator">Moderator</option>
+											<option value="admin">Admin</option>
+										</select>
+									</div>
+								</td>
+
+								<!-- ── Status ── -->
+								<td class="td-status">
+									<button class="status-btn"
+											[class.status-active]="user.isActive"
+											[class.status-inactive]="!user.isActive"
+											(click)="toggleActive(user)">
+										<span class="status-led"></span>
+										{{ user.isActive ? 'Active' : 'Inactive' }}
+									</button>
+								</td>
+
+								<!-- ── Joined ── -->
+								<td class="td-joined">{{ user.createdAt | date:'MMM d, y' }}</td>
+
+								<!-- ── Actions ── -->
+								<td class="td-actions">
+									<button class="del-btn" title="Remove user" (click)="deleteUser(user)">
+										<svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+											 stroke="currentColor" stroke-width="2.2">
+											<polyline points="3 6 5 6 21 6"/>
+											<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+											<path d="M10 11v6M14 11v6"/>
+											<path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+										</svg>
+										Remove
+									</button>
+								</td>
+
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- ── Empty ── -->
+			@if (users.length === 0) {
+				<div class="tbl-empty">
+					<div class="empty-ico">🔍</div>
+					<h3>No users found</h3>
+					<p>Try a different name, email, or role filter.</p>
+				</div>
+			}
+
+			<!-- ══════════════════════════════════════════
+				 PAGINATION
+			══════════════════════════════════════════ -->
+			@if (totalPages() > 1) {
+				<div class="pagination">
+          <span class="pg-info">
+            Page {{ page() }} of {{ totalPages() }}
+          </span>
+					<div class="pg-controls">
+						<button class="pg-btn" [disabled]="page() === 1" (click)="prevPage()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+								 stroke="currentColor" stroke-width="2.5">
+								<polyline points="15 18 9 12 15 6"/>
+							</svg>
+						</button>
+
+						@for (p of pageNumbers(); track $index) {
+							@if (p === '...') {
+								<span class="pg-dots">…</span>
+							} @else {
+								<button class="pg-btn pg-num"
+										[class.pg-active]="page() === p"
+										(click)="goPage(p)">{{ p }}
+								</button>
+							}
+						}
+
+						<button class="pg-btn" [disabled]="page() === totalPages()" (click)="nextPage()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+								 stroke="currentColor" stroke-width="2.5">
+								<polyline points="9 18 15 12 9 6"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+			}
+		}
+
+	</div>
+
+</div>
+
+<!-- ══════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════ -->
+@if (toast()) {
+	<div class="toast" [class.toast-error]="toast()!.type === 'error'">
+		{{ toast()!.type === 'success' ? '✅' : '⚠️' }}
+		{{ toast()!.msg }}
+	</div>
+}

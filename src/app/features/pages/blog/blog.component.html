@@ -1,0 +1,536 @@
+<section style="background:linear-gradient(135deg,#0d1235 0%,#1a35d4 60%,#00aaff 100%)"
+		 class="py-16 sm:py-20 relative overflow-hidden">
+	<!-- Decorative blobs -->
+	<div class="absolute top-0 right-0 w-96 h-96 rounded-full pointer-events-none"
+		 style="background:radial-gradient(circle,rgba(0,170,255,.18) 0%,transparent 70%);transform:translate(30%,-30%)"></div>
+	<div class="absolute bottom-0 left-0 w-72 h-72 rounded-full pointer-events-none"
+		 style="background:radial-gradient(circle,rgba(26,53,212,.22) 0%,transparent 70%);transform:translate(-30%,30%)"></div>
+
+	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+		<nav aria-label="Breadcrumb" class="mb-6">
+			<ol class="flex items-center gap-2 text-sm">
+				<li><a routerLink="/" class="text-blue-300 hover:text-white transition-colors">Home</a></li>
+				<li class="text-blue-400" aria-hidden="true">/</li>
+				<li><span class="text-white font-medium" aria-current="page">Blog &amp; Insights</span></li>
+			</ol>
+		</nav>
+
+		<div class="grid lg:grid-cols-2 gap-12 items-center">
+			<div>
+				<div class="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm
+								border border-white/20 rounded-full px-4 py-2 text-blue-200 text-xs font-medium mb-6">
+							<span class="w-2 h-2 rounded-full bg-[#00aaff]"
+								  style="animation:pdot 2s ease-in-out infinite" aria-hidden="true"></span>
+					@if (loading()) {
+						<span>Loading articles…</span>
+					} @else {
+						<span>{{ allPosts().length }} articles · {{ categories.length - 1 }} categories</span>
+					}
+				</div>
+				<h1 class="font-bold text-4xl sm:text-5xl lg:text-6xl text-white leading-[1.1] mb-5">
+					Blog &amp; <span class="gt">Insights</span>
+				</h1>
+				<p class="text-blue-100/90 text-base sm:text-lg max-w-xl leading-relaxed mb-6">
+					Expert guides, visa news, scholarships, and study tips across 5 destinations.
+					Updated regularly by our migration agents and education consultants.
+				</p>
+				<div class="flex flex-wrap gap-2">
+					@for (cat of categories.slice(1); track cat) {
+						<button class="c-pill" [class.active]="activeCat() === cat" (click)="setCat(cat)">
+							{{ catEmoji(cat) }}&nbsp;{{ cat }}
+						</button>
+					}
+				</div>
+			</div>
+
+			<div class="hidden lg:grid grid-cols-3 gap-3">
+				@for (s of heroStats(); track s.label) {
+					<div class="bg-white/8 backdrop-blur border border-white/12 rounded-2xl p-5 text-center">
+						<div class="text-2xl mb-1">{{ s.icon }}</div>
+						<div class="text-2xl font-bold text-white">{{ s.val }}</div>
+						<div class="text-blue-200 text-xs mt-0.5">{{ s.label }}</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
+</section>
+
+<!-- ════════════ STICKY FILTER BAR ════════════════════════ -->
+<div class="bg-white border-b border-[#eef1ff] sticky z-30" style="top:72px">
+	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+		<div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+
+			<!-- Sort + Search -->
+			<div class="flex gap-2 sm:ml-auto w-full sm:w-auto">
+				<label class="sr-only" for="bl-sort">Sort order</label>
+				<select id="bl-sort" [ngModel]="sortBy()" (ngModelChange)="sortBy.set($event); onSort()"
+						class="text-xs py-2 px-3 border border-[#dde3ff] rounded-xl bg-white text-[#1a2560] font-semibold outline-none focus:border-[#1a35d4] w-36 flex-shrink-0">
+					<option value="newest">Newest first</option>
+					<option value="oldest">Oldest first</option>
+					<option value="shortest">Shortest read</option>
+				</select>
+				<div class="relative flex-1 sm:w-56">
+					<svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none"
+						 fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+							  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+					</svg>
+					<input id="bl-search" type="search" [ngModel]="searchQ()" (ngModelChange)="searchQ.set($event); onSearch()"
+						   placeholder="Search articles…"
+						   class="pl-9 py-2 text-sm w-full border border-[#dde3ff] rounded-xl bg-white text-[#1a2560] outline-none focus:border-[#1a35d4] transition-colors"/>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- ══════════════════════ MAIN CONTENT ══════════════════ -->
+<div class="py-12 sm:py-16 bg-[#f8f9ff] min-h-screen">
+	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+		<!-- ── LOADING SKELETONS ── -->
+		@if (loading()) {
+			<div class="grid lg:grid-cols-3 gap-8 xl:gap-12">
+				<div class="lg:col-span-2 space-y-5">
+					<!-- Featured skeleton -->
+					<div class="skeleton h-72 w-full mb-8"></div>
+					<div class="grid sm:grid-cols-2 gap-5">
+						@for (n of [1,2,3,4]; track n) {
+							<div class="bg-white rounded-2xl border border-[#eef1ff] overflow-hidden">
+								<div class="skeleton h-44 w-full"></div>
+								<div class="p-5 space-y-3">
+									<div class="skeleton h-3 w-1/3 rounded"></div>
+									<div class="skeleton h-5 w-full rounded"></div>
+									<div class="skeleton h-5 w-3/4 rounded"></div>
+									<div class="skeleton h-3 w-1/2 rounded"></div>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+				<div class="space-y-5">
+					<div class="skeleton h-40 rounded-2xl"></div>
+					<div class="skeleton h-56 rounded-2xl"></div>
+					<div class="skeleton h-48 rounded-2xl"></div>
+				</div>
+			</div>
+		}
+
+		<!-- ── ERROR STATE ── -->
+		@if (!loading() && errMsg()) {
+			<div class="state-box max-w-lg mx-auto">
+				<div class="text-5xl mb-4">⚠️</div>
+				<h3 class="text-xl font-bold text-[#1a2560] mb-2">Something went wrong</h3>
+				<p class="text-gray-400 text-sm mb-5">{{ errMsg() }}</p>
+				<button (click)="fetchPosts()"
+						class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm text-white cursor-pointer border-none"
+						style="background:linear-gradient(135deg,#1a35d4,#00aaff)">
+					🔄 Try Again
+				</button>
+			</div>
+		}
+
+		<!-- ── CONTENT ── -->
+		@if (!loading() && !errMsg()) {
+			<div class="grid lg:grid-cols-3 gap-8 xl:gap-12">
+
+				<!-- ──────── LEFT: post list ──────── -->
+				<div class="lg:col-span-2">
+
+					<!-- Results count + active filters -->
+					<div class="flex items-center justify-between mb-5 rv" #rv>
+						<div class="flex items-center gap-3 flex-wrap">
+							<p class="text-sm text-gray-500">
+								@if (searchQ() || activeCat() !== 'All') {
+									<strong class="text-[#1a2560]">{{ filteredPosts().length }}</strong>
+									<span> articles found</span>
+								} @else {
+									<strong class="text-[#1a2560]">{{ allPosts().length }}</strong>
+									<span> articles published</span>
+								}
+							</p>
+							<!-- Active filter chips -->
+							@if (activeCat() !== 'All') {
+								<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+									  style="background:#eef4ff;color:#1a35d4">
+											{{ catEmoji(activeCat()) }} {{ activeCat() }}
+									<button class="ml-1 opacity-60 hover:opacity-100" (click)="setCat('All')">✕</button>
+										</span>
+							}
+							@if (searchQ()) {
+								<span class="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+									  style="background:#fef9c3;color:#92400e">
+											🔍 "{{ searchQ() }}"
+											<button class="ml-1 opacity-60 hover:opacity-100" (click)="clearSearch()">✕</button>
+										</span>
+							}
+						</div>
+						@if (searchQ() || activeCat() !== 'All') {
+							<button class="text-xs text-gray-400 hover:text-[#1a35d4] font-semibold transition-colors"
+									(click)="resetFilters()">Clear all</button>
+						}
+					</div>
+
+					<!-- ── FEATURED POST ── -->
+					@if (featuredPost() && activeCat() === 'All' && !searchQ()) {
+						<div class="mb-8 rv" #rv>
+							<p class="text-[10px] font-bold uppercase tracking-widest text-[#1a35d4] mb-3">⭐ Featured Article</p>
+							<a class="featured-card" [routerLink]="['/blog', featuredPost()!.slug]">
+								<div class="grid md:grid-cols-5">
+
+									<!-- Media (3/5) -->
+									<div class="md:col-span-3 featured-thumb" style="min-height:220px">
+										@if (featuredPost()!.mediaType === 'image' && featuredPost()!.imageUrl) {
+											<img [src]="featuredPost()!.imageUrl"
+												 [alt]="featuredPost()!.imageAlt || featuredPost()!.title"
+												 loading="eager"/>
+											<div class="absolute inset-0 bg-gradient-to-r from-transparent to-black/10 pointer-events-none"></div>
+										} @else if (featuredPost()!.mediaType === 'youtube' && featuredPost()!.youtubeId) {
+											<img [src]="ytThumb(featuredPost()!.youtubeId!)"
+												 [alt]="'Video: ' + featuredPost()!.title" loading="eager"/>
+											<div class="play-btn">
+												<div class="play-circle bg-red-600/90 shadow-xl">
+													<svg class="w-6 h-6 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+														<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+													</svg>
+												</div>
+											</div>
+											<span class="media-badge">▶ YouTube</span>
+										} @else if (featuredPost()!.mediaType === 'video' && featuredPost()!.videoUrl) {
+											<video [src]="featuredPost()!.videoUrl" autoplay muted loop playsinline></video>
+											<span class="media-badge">▶ Video</span>
+										} @else {
+											<div class="featured-thumb-emoji"
+												 [style.background]="'linear-gradient(135deg,' + (featuredPost()!.authorColor || '#1a35d4') + '18,' + (featuredPost()!.authorColor || '#1a35d4') + '30)'">
+												{{ featuredPost()!.fallbackEmoji || catEmoji(featuredPost()!.category) }}
+											</div>
+										}
+										<div class="absolute top-3 left-3 flex gap-1.5">
+											<span class="cat-chip orange">⭐ Featured</span>
+											<span class="cat-chip" style="background:rgba(9,14,43,.7);color:#fff">{{ featuredPost()!.category }}</span>
+										</div>
+									</div>
+
+									<!-- Text (2/5) -->
+									<div class="md:col-span-2 p-6 sm:p-8 flex flex-col justify-between">
+										<div>
+											<div class="flex flex-wrap gap-1.5 mb-3">
+												@for (tag of featuredPost()!.tags.slice(0, 3); track tag) {
+													<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef4ff] text-[#1a35d4]">#{{ tag }}</span>
+												}
+											</div>
+											<h2 class="text-xl sm:text-2xl font-bold text-[#1a2560] leading-snug mb-3 hover:text-[#1a35d4] transition-colors">
+												{{ featuredPost()!.title }}
+											</h2>
+											<p class="text-gray-500 text-sm leading-relaxed line-clamp-3">{{ featuredPost()!.excerpt }}</p>
+										</div>
+										<div class="mt-5 pt-5 border-t border-[#eef1ff]">
+											<div class="flex items-center justify-between">
+												<div class="flex items-center gap-2">
+													<div class="w-9 h-9 rounded-full flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0"
+														 [style.background]="featuredPost()!.authorColor || '#1a35d4'">
+														{{ featuredPost()!.initials }}
+													</div>
+													<div>
+														<p class="text-sm font-bold text-[#1a2560]">{{ featuredPost()!.author }}</p>
+														<p class="text-[10px] text-gray-400">
+															{{ svc.formatDate(featuredPost()!.createdAt) }} · {{ featuredPost()!.readTime }}
+														</p>
+													</div>
+												</div>
+												<span class="inline-flex items-center gap-1 text-[#1a35d4] font-bold text-sm flex-shrink-0">
+															Read
+															<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+																<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+															</svg>
+														</span>
+											</div>
+										</div>
+									</div>
+								</div>
+							</a>
+						</div>
+					}
+
+					<!-- ── POST GRID ── -->
+					@if (visiblePosts().length > 0) {
+						<div class="sg grid sm:grid-cols-2 gap-5" #rv>
+							@for (post of visiblePosts(); track post.id) {
+								<a class="post-card" [routerLink]="['/blog', post.slug]">
+									<div class="thumb-wrap">
+										@if (post.mediaType === 'image' && post.imageUrl) {
+											<img [src]="post.imageUrl" [alt]="post.imageAlt || post.title" loading="lazy"/>
+											<div class="absolute inset-0 bg-gradient-to-t from-black/15 to-transparent pointer-events-none"></div>
+										} @else if (post.mediaType === 'youtube' && post.youtubeId) {
+											<img [src]="ytThumb(post.youtubeId)" [alt]="'Video: ' + post.title" loading="lazy" class="w-full h-full object-cover"/>
+											<div class="play-btn">
+												<div class="play-circle bg-red-600/90 shadow-lg">
+													<svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+														<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+													</svg>
+												</div>
+											</div>
+											<span class="media-badge">▶ YouTube</span>
+										} @else if (post.mediaType === 'video' && post.videoUrl) {
+											<video [src]="post.videoUrl" muted preload="metadata" playsinline></video>
+											<div class="play-btn">
+												<div class="play-circle shadow-lg" style="background:rgba(26,53,212,.88)">
+													<svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 20 20">
+														<path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>
+													</svg>
+												</div>
+											</div>
+											<span class="media-badge">▶ Video</span>
+										} @else {
+											<div class="thumb-emoji"
+												 [style.background]="'linear-gradient(135deg,' + (post.authorColor || '#1a35d4') + '14,' + (post.authorColor || '#1a35d4') + '2c)'">
+												{{ post.fallbackEmoji || catEmoji(post.category) }}
+											</div>
+										}
+										<span class="rt-badge">{{ post.readTime }}</span>
+									</div>
+
+									<div class="p-5 flex-1 flex flex-col">
+										<div class="flex items-center gap-2 mb-2.5">
+											<span class="cat-chip">{{ post.category }}</span>
+											@if (post.tags?.length) {
+												<span class="text-[10px] font-semibold text-gray-400">#{{ post.tags[0] }}</span>
+											}
+										</div>
+										<h3 class="text-base font-bold text-[#1a2560] leading-snug mb-2 line-clamp-2">
+											{{ post.title }}
+										</h3>
+										<p class="text-gray-500 text-sm leading-relaxed line-clamp-2 flex-1 mb-4">
+											{{ post.excerpt }}
+										</p>
+										<div class="flex items-center justify-between pt-3.5 border-t border-[#f0f2ff]">
+											<div class="flex items-center gap-2 min-w-0">
+												<div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0"
+													 [style.background]="post.authorColor || '#1a35d4'">
+													{{ post.initials }}
+												</div>
+												<div class="min-w-0">
+													<p class="text-xs font-bold text-[#1a2560] truncate">{{ post.author }}</p>
+													<p class="text-[10px] text-gray-400">{{ svc.formatDate(post.createdAt) }}</p>
+												</div>
+											</div>
+											<span class="inline-flex items-center gap-1 text-[#1a35d4] font-bold text-xs flex-shrink-0">
+														Read
+														<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+														</svg>
+													</span>
+										</div>
+									</div>
+								</a>
+							}
+						</div>
+
+					} @else {
+						<div class="state-box rv" #rv>
+							<div class="text-5xl mb-4">🔍</div>
+							<h3 class="text-xl font-bold text-[#1a2560] mb-2">No articles found</h3>
+							<p class="text-gray-400 text-sm mb-5">Try a different keyword or browse another category.</p>
+							<button class="c-pill active" (click)="resetFilters()">Show All Articles</button>
+						</div>
+					}
+
+					<!-- ── PAGINATION ── -->
+					@if (totalPages() > 1) {
+						<div class="flex items-center justify-center gap-2 mt-10 rv" #rv>
+							<button class="pg" [disabled]="page() === 1" (click)="goTo(page() - 1)" aria-label="Previous">
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+								</svg>
+							</button>
+							@for (n of pageList(); track n) {
+								<button class="pg" [class.active]="page() === n"
+										[attr.aria-current]="page() === n ? 'page' : null"
+										(click)="goTo(n)">{{ n }}</button>
+							}
+							<button class="pg" [disabled]="page() === totalPages()" (click)="goTo(page() + 1)" aria-label="Next">
+								<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+								</svg>
+							</button>
+						</div>
+					}
+
+				</div>
+				<!-- /left col -->
+
+				<!-- ──────── RIGHT: sidebar ──────── -->
+				<aside class="space-y-5">
+
+					<!-- CTA -->
+					<div class="s-card-dark rv" #rv>
+						<div class="text-3xl mb-2">🎓</div>
+						<h3 class="text-lg font-bold text-white mb-2">Free Consultation</h3>
+						<p class="text-blue-200 text-sm leading-relaxed mb-4">
+							Expert advice on visas, admissions, and study pathways — tailored just for you.
+						</p>
+						<a routerLink="/contact"
+						   class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl
+										bg-white font-bold text-[#1a35d4] text-sm hover:bg-[#eef4ff] transition-colors no-underline">
+							Book Now — It's Free
+							<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+							</svg>
+						</a>
+					</div>
+
+					<!-- Stats -->
+					<div class="s-card rv grid grid-cols-3 gap-3" #rv>
+						@for (s of heroStats(); track s.label) {
+							<div class="text-center">
+								<div class="text-xl mb-0.5">{{ s.icon }}</div>
+								<div class="font-bold text-[#1a2560] text-base">{{ s.val }}</div>
+								<div class="text-[10px] text-gray-400">{{ s.label }}</div>
+							</div>
+						}
+					</div>
+
+					<!-- Categories -->
+					<div class="s-card rv" #rv>
+						<h3 class="font-bold text-[#1a2560] text-xs uppercase tracking-wider mb-3">Categories</h3>
+						<div class="space-y-1.5">
+							@for (cat of categories.slice(1); track cat) {
+								<button (click)="setCat(cat)"
+										class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all group text-left cursor-pointer"
+										[class]="activeCat() === cat ? 'border-[#1a35d4] bg-[#eef4ff]' : 'border-[#eef1ff] hover:border-[#1a35d4] hover:bg-[#eef4ff]'">
+											<span class="flex items-center gap-2 text-sm font-semibold"
+												  [class]="activeCat() === cat ? 'text-[#1a35d4]' : 'text-[#1a2560] group-hover:text-[#1a35d4]'">
+												{{ catEmoji(cat) }} {{ cat }}
+											</span>
+									<span class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+										  [class]="activeCat() === cat ? 'bg-[#1a35d4] text-white' : 'bg-[#f0f4ff] text-[#1a35d4]'">
+												{{ countCat(cat) }}
+											</span>
+								</button>
+							}
+						</div>
+					</div>
+
+					<!-- Recent posts -->
+					<div class="s-card rv" #rv>
+						<h3 class="font-bold text-[#1a2560] text-xs uppercase tracking-wider mb-2">Recent Articles</h3>
+						@for (p of recentPosts(); track p.id) {
+							<a class="recent-row" [routerLink]="['/blog', p.slug]">
+								<div class="recent-thumb">
+									@if (p.mediaType === 'image' && p.imageUrl) {
+										<img [src]="p.imageUrl" [alt]="p.title" loading="lazy"/>
+									} @else if (p.mediaType === 'youtube' && p.youtubeId) {
+										<img [src]="ytThumb(p.youtubeId)" [alt]="p.title" loading="lazy" class="w-full h-full object-cover"/>
+									} @else {
+										{{ p.fallbackEmoji || catEmoji(p.category) }}
+									}
+								</div>
+								<div class="min-w-0">
+									<p class="text-xs font-bold text-[#1a2560] line-clamp-2 leading-snug">{{ p.title }}</p>
+									<p class="text-[10px] text-gray-400 mt-0.5">{{ svc.formatDate(p.createdAt) }} · {{ p.readTime }}</p>
+								</div>
+							</a>
+						}
+						@if (!loading() && recentPosts().length === 0) {
+							<p class="text-xs text-gray-400 py-2">No articles yet.</p>
+						}
+					</div>
+
+					<!-- Tag cloud -->
+					@if (allTags().length > 0) {
+						<div class="s-card rv" #rv>
+							<h3 class="font-bold text-[#1a2560] text-xs uppercase tracking-wider mb-3">Popular Tags</h3>
+							<div class="flex flex-wrap gap-1.5">
+								@for (tag of allTags(); track tag) {
+									<button (click)="searchTag(tag)"
+											class="text-[11px] font-semibold px-2.5 py-1 rounded-full border border-[#dde3ff] bg-white text-gray-500 hover:border-[#1a35d4] hover:text-[#1a35d4] hover:bg-[#eef4ff] transition-all cursor-pointer">
+										#{{ tag }}
+									</button>
+								}
+							</div>
+						</div>
+					}
+
+				</aside>
+
+			</div>
+		}
+	</div>
+</div>
+
+<!-- ══════════════════════ NEWSLETTER ════════════════════ -->
+<!--<section class="py-14 sm:py-16 bg-[#f8f9ff]">-->
+<!--	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">-->
+<!--		<div class="nl-box rv" #rv>-->
+<!--			<div class="relative z-10 grid md:grid-cols-2 gap-8 items-center p-8 sm:p-12">-->
+<!--				<div>-->
+<!--					<div class="text-4xl mb-3">✉️</div>-->
+<!--					<h2 class="text-2xl sm:text-3xl font-bold text-white mb-2">Stay Informed</h2>-->
+<!--					<p class="text-blue-200 text-sm leading-relaxed">-->
+<!--						Monthly updates on visa policy changes, new scholarships, PTE/IELTS tips, and-->
+<!--						destination news. No spam — unsubscribe anytime.-->
+<!--					</p>-->
+<!--				</div>-->
+<!--				<div>-->
+<!--					@if (!nlDone()) {-->
+<!--						<div class="space-y-3">-->
+<!--							<div class="grid sm:grid-cols-2 gap-3">-->
+<!--								<div>-->
+<!--									<label for="nl-name" class="text-xs font-bold text-blue-200 block mb-1">First Name</label>-->
+<!--									<input id="nl-name" type="text" [(ngModel)]="nlName" placeholder="Jane"-->
+<!--										   class="w-full px-3 py-2.5 rounded-xl border border-white/20 bg-white/12 text-white placeholder-white/40 text-sm outline-none focus:border-white/50 transition-colors"/>-->
+<!--								</div>-->
+<!--								<div>-->
+<!--									<label for="nl-email" class="text-xs font-bold text-blue-200 block mb-1">Email</label>-->
+<!--									<input id="nl-email" type="email" [(ngModel)]="nlEmail" placeholder="jane@example.com"-->
+<!--										   class="w-full px-3 py-2.5 rounded-xl border border-white/20 bg-white/12 text-white placeholder-white/40 text-sm outline-none focus:border-white/50 transition-colors"/>-->
+<!--								</div>-->
+<!--							</div>-->
+<!--							<button (click)="subscribe()"-->
+<!--									class="w-full py-3 rounded-xl font-bold text-[#1a35d4] text-sm bg-white hover:bg-[#eef4ff] transition-all flex items-center justify-center gap-2 border-none cursor-pointer">-->
+<!--								Subscribe — Free-->
+<!--								<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">-->
+<!--									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>-->
+<!--								</svg>-->
+<!--							</button>-->
+<!--						</div>-->
+<!--					} @else {-->
+<!--						<div class="bg-white/10 border border-white/20 rounded-2xl p-6 text-center">-->
+<!--							<div class="text-3xl mb-2">🎉</div>-->
+<!--							<p class="font-bold text-white text-base mb-1">You're subscribed!</p>-->
+<!--							<p class="text-blue-200 text-sm">Check your inbox for a welcome email.</p>-->
+<!--						</div>-->
+<!--					}-->
+<!--				</div>-->
+<!--			</div>-->
+<!--		</div>-->
+<!--	</div>-->
+<!--</section>-->
+
+<!-- ══════════════════════ BOTTOM CTA ════════════════════ -->
+<section class="py-14 sm:py-16" style="background:linear-gradient(135deg,#0d1235 0%,#1a35d4 55%,#00aaff 100%)">
+	<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center rv" #rv>
+		<h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-5">
+			Ready to Start Your Study Journey?
+		</h2>
+		<p class="text-white/80 text-base sm:text-lg max-w-xl mx-auto mb-8">
+			Book a free consultation and get personalised guidance on visas, admissions, and more.
+		</p>
+		<div class="flex flex-col sm:flex-row gap-4 justify-center">
+			<a routerLink="/contact"
+			   class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white font-bold
+							rounded-xl text-sm sm:text-base transition-all hover:-translate-y-px no-underline"
+			   style="color:#1a35d4;box-shadow:0 4px 20px rgba(255,255,255,.2)">
+				Book Free Consultation
+				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+				</svg>
+			</a>
+			<a routerLink="/services"
+			   class="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-sm sm:text-base border-2 border-white/40 text-white hover:bg-white/10 transition-all no-underline">
+				Our Services
+			</a>
+		</div>
+	</div>
+</section>

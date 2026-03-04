@@ -1,0 +1,107 @@
+<div class="shell">
+
+	<!-- Mobile backdrop -->
+	<div class="backdrop" [class.on]="mobileOpen()" (click)="mobileOpen.set(false)"></div>
+
+	<!-- ═══════════════ SIDEBAR ═══════════════ -->
+	<aside class="sidebar" [class.mini]="mini()" [class.open]="mobileOpen()" aria-label="Sidebar navigation">
+
+		<!-- Logo Row -->
+		<div class="logo-row">
+			<a class="logo-link" routerLink="/admin/dashboard" (click)="closeMobile()">
+				<div class="logo-mark">
+					<img src="assets/images/logo.png" alt="Global Next" class="logo-img" />
+				</div>
+				<div class="logo-text">
+					<span class="logo-wordmark">Global <b>Next</b></span>
+					<span class="logo-portal">Admin Portal</span>
+				</div>
+			</a>
+			<!-- Mobile close -->
+			<button class="mob-close-btn" (click)="mobileOpen.set(false)" aria-label="Close menu">
+				<span [innerHTML]="render(icons.close, 15)"></span>
+			</button>
+		</div>
+
+		<!-- Desktop collapse toggle -->
+		<button
+			class="collapse-btn"
+			(click)="mini.set(!mini())"
+			[title]="mini() ? 'Expand sidebar' : 'Collapse sidebar'">
+			<span [innerHTML]="render(mini() ? icons.chevronR : icons.chevronL, 11)"></span>
+		</button>
+
+		<!-- Nav -->
+		<nav class="sidebar-nav" aria-label="Admin navigation">
+
+			<p class="nav-section-label">Overview</p>
+
+			@for (item of mainNav; track item.route) {
+				<a class="nav-link" [routerLink]="item.route" routerLinkActive="active"
+				   [attr.data-tip]="item.label" (click)="closeMobile()">
+					<span class="nav-icon" [innerHTML]="render(item.svg, 17)"></span>
+					<span class="nav-text">{{ item.label }}</span>
+					@if (item.badge) {
+						<span class="link-badge badge-{{ item.badgeType ?? 'blue' }}">{{ item.badge }}</span>
+					}
+				</a>
+			}
+
+			<p class="nav-section-label">Management</p>
+
+			@for (item of mgmtNav; track item.route) {
+				<a class="nav-link" [routerLink]="item.route" routerLinkActive="active"
+				   [attr.data-tip]="item.label" (click)="closeMobile()">
+					<span class="nav-icon" [innerHTML]="render(item.svg, 17)"></span>
+					<span class="nav-text">{{ item.label }}</span>
+					@if (item.badge) {
+						<span class="link-badge badge-{{ item.badgeType ?? 'blue' }}">{{ item.badge }}</span>
+					}
+				</a>
+			}
+
+		</nav>
+
+		<!-- Sidebar Footer -->
+		@if (user$ | async; as user) {
+			<div class="sidebar-foot">
+				<button class="nav-link nav-logout" data-tip="Sign Out" (click)="logout()">
+					<span class="nav-icon" [innerHTML]="render(icons.logout, 17)"></span>
+					<span class="nav-text">Sign Out</span>
+				</button>
+				<div class="foot-divider"></div>
+				<div class="user-card">
+					<div class="user-ava">
+						{{ user.displayName[0]?.toUpperCase() }}
+						<span class="user-online"></span>
+					</div>
+					<div class="user-info">
+						<span class="user-name">{{ user.displayName }}</span>
+						<span class="user-role">{{ user.role }}</span>
+					</div>
+				</div>
+			</div>
+		}
+
+	</aside>
+
+	<!-- ═══════════════ MAIN ═══════════════ -->
+	<div class="main" [class.mini]="mini()">
+
+		<!-- Mobile-only top strip -->
+		<div class="mob-strip">
+			<button class="mob-menu-btn" (click)="mobileOpen.set(true)" aria-label="Open menu">
+				<span [innerHTML]="render(icons.menu, 20)"></span>
+			</button>
+			<span class="mob-page-label">{{ pageLabel() || 'Dashboard' }}</span>
+		</div>
+
+		<main class="page-body" role="main">
+			<div class="outlet-wrap">
+				<router-outlet></router-outlet>
+			</div>
+		</main>
+
+	</div>
+
+</div>

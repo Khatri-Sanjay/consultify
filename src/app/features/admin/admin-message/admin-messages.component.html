@@ -1,0 +1,369 @@
+<div class="am-page fi">
+
+	<!-- ── Header ──────────────────────────────────────────────── -->
+	<div class="am-header">
+		<div class="am-header__left">
+			<div class="am-icon">✉️</div>
+			<div>
+				<h1 class="am-title">Contact Messages</h1>
+				<p class="am-sub">Manage enquiries submitted from your contact form</p>
+			</div>
+		</div>
+		<div class="am-header__actions">
+			<button class="btn-g" (click)="load()" [disabled]="loading()">
+				@if (loading()) {
+					<svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
+						<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/>
+						<path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75"/>
+					</svg>
+				} @else {
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+					</svg>
+				}
+				Refresh
+			</button>
+		</div>
+	</div>
+
+	<!-- ── Stat Strip ───────────────────────────────────────────── -->
+	<div class="stat-strip">
+		<div class="stat-chip stat-blue">
+			<span class="sc-ico">📋</span>
+			<div><div class="sc-val">{{ counts().all }}</div><div class="sc-lbl">Total</div></div>
+		</div>
+		<div class="stat-chip stat-blue">
+			<span class="sc-ico">🔵</span>
+			<div><div class="sc-val">{{ counts().new }}</div><div class="sc-lbl">New</div></div>
+		</div>
+		<div class="stat-chip stat-green">
+			<span class="sc-ico">✅</span>
+			<div><div class="sc-val">{{ counts().replied }}</div><div class="sc-lbl">Replied</div></div>
+		</div>
+		<div class="stat-chip stat-amber">
+			<span class="sc-ico">👁️</span>
+			<div><div class="sc-val">{{ counts().read }}</div><div class="sc-lbl">Read</div></div>
+		</div>
+		<div class="stat-chip stat-purple">
+			<span class="sc-ico">🗄️</span>
+			<div><div class="sc-val">{{ counts().archived }}</div><div class="sc-lbl">Archived</div></div>
+		</div>
+	</div>
+
+	<!-- ── Filter Bar ───────────────────────────────────────────── -->
+	<div class="filter-bar">
+		<!-- Search -->
+		<div class="search-wrap">
+			<svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+				<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+			</svg>
+			<input class="search-input" type="text" placeholder="Search name, email, phone…"
+				   [(ngModel)]="searchQuery" (ngModelChange)="onSearch($event)"/>
+			@if (searchQuery) {
+				<button class="search-clear" (click)="searchQuery=''; onSearch('')">✕</button>
+			}
+		</div>
+
+		<!-- Service filter -->
+		<select class="svc-select" [(ngModel)]="serviceFilter" (ngModelChange)="onService($event)">
+			<option value="">All Services</option>
+			@for (s of serviceOptions; track s) {
+				<option [value]="s">{{ s }}</option>
+			}
+		</select>
+
+		<!-- Status tabs as filter chips -->
+		<div class="filter-chips">
+			@for (tab of tabs; track tab.value) {
+				<button class="fchip" [class]="tabChipClass(tab.value)"
+						[class.fchip-on]="activeTab() === tab.value"
+						(click)="setTab(tab.value)">
+					{{ tab.icon }} {{ tab.label }}
+				</button>
+			}
+		</div>
+
+		<!-- Page size -->
+		<div class="pg-size-wrap">
+			<label class="pg-size-lbl">Rows</label>
+			<select class="pg-size-sel" [value]="pageSize()"
+					(change)="onPageSizeChange(+$any($event.target).value)">
+				<option value="5">5</option>
+				<option value="10">10</option>
+				<option value="25">25</option>
+				<option value="50">50</option>
+			</select>
+		</div>
+	</div>
+
+	<!-- ── Split grid ───────────────────────────────────────────── -->
+	<div class="split" [class.has-detail]="selected()">
+
+		<!-- ══ Table Card ════════════════════════════════════════════ -->
+		<div class="table-card">
+
+			@if (loading()) {
+				<div class="tbl-state">
+					<div class="spinner"></div>
+					<p>Loading messages…</p>
+				</div>
+			} @else if (error()) {
+				<div class="tbl-state">
+					<div class="empty-ico">⚠️</div>
+					<h3>Failed to load</h3>
+					<p>{{ error() }}</p>
+					<button class="btn-p" style="margin-top:1rem" (click)="load()">Retry</button>
+				</div>
+			} @else {
+				@let rows = filtered();
+				@if (rows.length === 0) {
+					<div class="tbl-state">
+						<div class="empty-ico">📭</div>
+						<h3>No messages found</h3>
+						<p>Try adjusting your search or filters.</p>
+					</div>
+				} @else {
+
+					<!-- Meta bar -->
+					<div class="tbl-meta">
+						<span>Showing <strong>{{ pageStart(rows.length) }}–{{ pageEnd(rows.length) }}</strong> of <strong>{{ rows.length }}</strong> messages</span>
+					</div>
+
+					<!-- Table -->
+					<div class="tbl-wrap">
+						<table class="tbl">
+							<thead>
+							<tr>
+								<th style="width:18px; padding-left:1.25rem; padding-right:.25rem"></th>
+								<th>Sender</th>
+								<th>Service</th>
+								<th>Preview</th>
+								<th>Status</th>
+								<th>Received</th>
+								<th>Actions</th>
+							</tr>
+							</thead>
+							<tbody>
+								@for (msg of pagedRows(rows); track msg.id) {
+									<tr class="tbl-row" [class.is-sel]="selected()?.id === msg.id" (click)="open(msg)">
+
+										<td class="td-dot" style="width:18px; padding-left:1.25rem; padding-right:.25rem">
+											@if (msg.status === 'new') { <div class="new-dot"></div> }
+										</td>
+
+										<!-- Sender -->
+										<td>
+											<div class="sender-cell">
+												<div class="av" style="width:34px;height:34px;font-size:.73rem"
+													 [style.background]="avatarColor(msg)">
+													{{ initials(msg.fullName) }}
+												</div>
+												<div class="sender-info">
+													<p class="sender-name">{{ msg.fullName }}</p>
+													<p class="sender-email">{{ msg.email }}</p>
+												</div>
+											</div>
+										</td>
+
+										<!-- Service -->
+										<td><span class="svc-chip">{{ msg.service }}</span></td>
+
+										<!-- Preview -->
+										<td style="max-width:200px">
+											<p style="font-size:.75rem;color:var(--t3);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px">
+												{{ msg.message }}
+											</p>
+										</td>
+
+										<!-- Status -->
+										<td>
+											<span class="badge" [class]="badgeClass(msg.status)">
+												<span class="badge-led"></span>
+												{{ msg.status }}
+											</span>
+										</td>
+
+										<!-- Date -->
+										<td style="white-space:nowrap">
+											<span style="font-size:.75rem;color:var(--t2)">{{ relativeTime(msg.createdAt) }}</span>
+										</td>
+
+										<!-- Actions -->
+										<td (click)="$event.stopPropagation()">
+											<div class="row-actions">
+												<select class="row-sel" [value]="msg.status"
+														[disabled]="actionId() === msg.id"
+														(change)="changeStatus(msg, $any($event.target).value)">
+													<option value="new">New</option>
+													<option value="read">Read</option>
+													<option value="replied">Replied</option>
+													<option value="archived">Archived</option>
+												</select>
+												<button class="act-btn act-del" (click)="startDelete(msg)" title="Delete">
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+													</svg>
+												</button>
+											</div>
+										</td>
+
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+
+					@if (totalPages(rows.length) > 0) {
+						<div class="pagination">
+							<span class="pg-info">Page {{ page() }} of {{ totalPages(rows.length) }}</span>
+							<div class="pg-controls">
+								<button class="pg-btn" [disabled]="page() === 1" (click)="prevPage()">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+										<polyline points="15 18 9 12 15 6"/>
+									</svg>
+								</button>
+								@for (p of pageNumbers(rows.length); track $index) {
+									@if (p === '...') {
+										<span class="pg-dots">…</span>
+									} @else {
+										<button class="pg-num" [class.pg-active]="page() === p"
+												(click)="goPage(+p)">{{ p }}</button>
+									}
+								}
+								<button class="pg-btn" [disabled]="page() === totalPages(rows.length)" (click)="nextPage(rows.length)">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+										<polyline points="9 18 15 12 9 6"/>
+									</svg>
+								</button>
+							</div>
+						</div>
+					}
+				}
+			}
+		</div>
+
+		<!-- ══ Detail Panel ══════════════════════════════════════════ -->
+		@if (selected()) {
+			@let msg = selected()!;
+			<div class="detail-panel">
+
+				<div class="dp-head">
+					<h3 class="dp-title">Message Detail</h3>
+					<button class="dp-close" (click)="close()" title="Close">
+						<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+						</svg>
+					</button>
+				</div>
+
+				<div class="dp-body">
+
+					<!-- Sender card -->
+					<div class="sndr-card">
+						<div class="av" style="width:44px;height:44px;font-size:.88rem;flex-shrink:0"
+							 [style.background]="avatarColor(msg)">
+							{{ initials(msg.fullName) }}
+						</div>
+						<div class="sndr-info">
+							<p class="sndr-name">{{ msg.fullName }}</p>
+							<p class="sndr-email">{{ msg.email }}</p>
+							@if (msg.phone) {
+								<p class="sndr-phone">
+									<svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="#e63946" stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+									</svg>
+									{{ msg.phone }}
+								</p>
+							}
+						</div>
+						<span class="badge" [class]="badgeClass(msg.status)" style="flex-shrink:0">
+							<span class="badge-led"></span>{{ msg.status }}
+						</span>
+					</div>
+
+					<!-- Info grid -->
+					<div class="info-grid">
+						<div class="info-cell">
+							<div class="i-lbl">Service</div>
+							<div class="i-val" style="color:#1d4ed8">{{ msg.service }}</div>
+						</div>
+						@if (msg.country) {
+							<div class="info-cell">
+								<div class="i-lbl">Destination</div>
+								<div class="i-val">{{ msg.country }}</div>
+							</div>
+						}
+						@if (msg.source) {
+							<div class="info-cell">
+								<div class="i-lbl">Found Us Via</div>
+								<div class="i-val">{{ msg.source }}</div>
+							</div>
+						}
+						<div class="info-cell">
+							<div class="i-lbl">Received</div>
+							<div class="i-val">{{ formatDate(msg.createdAt) }}</div>
+						</div>
+					</div>
+
+					<!-- Message -->
+					<div>
+						<span class="sec-lbl">Message</span>
+						<div class="msg-bbl">{{ msg.message }}</div>
+					</div>
+
+					<!-- Update status -->
+					<div>
+						<span class="sec-lbl">Update Status</span>
+						<div class="status-btns">
+							@for (s of statuses; track s.value) {
+								<button class="s-btn" [class]="s.value === 'replied' ? 's-replied' : ''"
+										[class.s-active]="msg.status === s.value"
+										[disabled]="msg.status === s.value || actionId() === msg.id"
+										(click)="changeStatus(msg, s.value)">
+									{{ s.icon }} {{ s.label }}
+								</button>
+							}
+						</div>
+					</div>
+
+				</div>
+
+				<div class="dp-foot">
+					<a [href]="mailtoLink(msg)" class="btn-p">
+						<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/>
+						</svg>
+						Reply via Email
+					</a>
+					@if (msg.phone) {
+						<a [href]="whatsappLink(msg)" target="_blank" class="btn-wa">💬 WhatsApp</a>
+					}
+					<button class="btn-danger" style="margin-left:auto" (click)="startDelete(msg)">
+						<svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+						</svg>
+						Delete
+					</button>
+				</div>
+
+			</div>
+		}
+
+	</div><!-- /split -->
+</div>
+
+<!-- Toast -->
+@if (toast()) {
+	<div class="toast" [class.toast-del]="toastType() === 'delete'">
+		@if (toastType() === 'delete') {
+			<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7"/>
+			</svg>
+		} @else {
+			<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+			</svg>
+		}
+		{{ toast() }}
+	</div>
+}

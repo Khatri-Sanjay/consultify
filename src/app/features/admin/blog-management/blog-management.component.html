@@ -1,0 +1,650 @@
+<div class="bm-page">
+
+	<!-- ══════════════════════════════════════════
+		 LIST VIEW
+	══════════════════════════════════════════ -->
+	@if (view() === 'list') {
+		<div class="fi">
+
+			<!-- Header -->
+			<div class="bm-header">
+				<div class="bm-header__left">
+					<div class="bm-icon">📝</div>
+					<div>
+						<h1 class="bm-title">Blog Posts</h1>
+						<p class="bm-sub">Manage, publish and organise your articles</p>
+					</div>
+				</div>
+				<div class="bm-header__actions">
+					<button class="btn-g" (click)="refreshList()" [disabled]="loading()">
+						@if (loading()) {
+							<svg class="spin" width="13" height="13" viewBox="0 0 24 24" fill="none">
+								<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
+										class="opacity-25"/>
+								<path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+									  class="opacity-75"/>
+							</svg>
+						} @else {
+							<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+								 stroke-width="2">
+								<path stroke-linecap="round" stroke-linejoin="round"
+									  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+							</svg>
+						}
+						Refresh
+					</button>
+					<button class="btn-p" (click)="openNew()">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							 stroke-width="2.5">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+						</svg>
+						New Post
+					</button>
+				</div>
+			</div>
+
+			<!-- Stat Strip -->
+			<div class="stat-strip">
+				@for (s of stats(); track s.label) {
+					<div class="stat-chip" [class]="statClass(s.color)">
+						<span class="sc-ico">{{ s.icon }}</span>
+						<div>
+							<div class="sc-val">{{ s.val }}</div>
+							<div class="sc-lbl">{{ s.label }}</div>
+						</div>
+					</div>
+				}
+			</div>
+
+			<!-- Filter Bar -->
+			<div class="filter-bar">
+				<!-- Search -->
+				<div class="search-wrap">
+					<svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+						 stroke-width="2.2">
+						<circle cx="11" cy="11" r="8"/>
+						<line x1="21" y1="21" x2="16.65" y2="16.65"/>
+					</svg>
+					<input class="search-input" type="text" placeholder="Search by title or category…"
+						   [(ngModel)]="searchQ" (ngModelChange)="applyFilter()"/>
+					@if (searchQ) {
+						<button class="search-clear" (click)="searchQ=''; applyFilter()">✕</button>
+					}
+				</div>
+
+				<!-- Filter chips -->
+				<div class="filter-chips">
+					<button class="fchip" [class.fchip-on]="filterBy==='all'" (click)="setFilter('all')">All</button>
+					<button class="fchip fchip-green" [class.fchip-on]="filterBy==='pub'" (click)="setFilter('pub')">
+						Published
+					</button>
+					<button class="fchip fchip-amber" [class.fchip-on]="filterBy==='draft'"
+							(click)="setFilter('draft')">Drafts
+					</button>
+				</div>
+
+				<!-- Page size -->
+				<div class="pg-size-wrap">
+					<label class="pg-size-lbl">Rows</label>
+					<select class="pg-size-sel" [value]="pageSize()"
+							(change)="onPageSizeChange(+$any($event.target).value)">
+						<option value="5">5</option>
+						<option value="10">10</option>
+						<option value="25">25</option>
+						<option value="50">50</option>
+					</select>
+				</div>
+			</div>
+
+			<!-- Table Card -->
+			<div class="table-card">
+
+				@if (loading()) {
+					<div class="tbl-state">
+						<div class="spinner"></div>
+						<p>Loading posts…</p>
+					</div>
+				} @else if (shown().length === 0) {
+					<div class="tbl-state">
+						<div class="empty-ico">📭</div>
+						<h3>No posts found</h3>
+						<p>
+							@if (searchQ || filterBy !== 'all') {
+								Try adjusting your search or filter.
+							} @else {
+								Create your first post to get started.
+							}
+						</p>
+						@if (!searchQ && filterBy === 'all') {
+							<button class="btn-p mt-4" (click)="openNew()">
+								<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+									 stroke-width="2.5">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+								</svg>
+								Create First Post
+							</button>
+						}
+					</div>
+				} @else {
+
+					<!-- Meta bar -->
+					<div class="tbl-meta">
+						<span>Showing <strong>{{ pageStart() }}
+							–{{ pageEnd() }}</strong> of <strong>{{ shown().length }}</strong> posts</span>
+					</div>
+
+					<!-- Table -->
+					<div class="tbl-wrap">
+						<table class="tbl">
+							<thead>
+							<tr>
+								<th>Post</th>
+								<th>Category</th>
+								<th>Status</th>
+								<th>Created</th>
+								<th class="th-actions">Actions</th>
+							</tr>
+							</thead>
+							<tbody>
+								@for (p of pagedPosts(); track p.id) {
+									<tr class="tbl-row">
+
+										<!-- Post cell -->
+										<td class="td-post">
+											<div class="post-cell">
+												<div class="post-thumb">
+													@if (p.mediaType === 'image' && p.imageUrl) {
+														<img [src]="p.imageUrl" [alt]="p.title" class="thumb-img"/>
+													} @else if (p.mediaType === 'youtube' && p.youtubeId) {
+														<img [src]="ytThumb(p.youtubeId)" alt="yt" class="thumb-img"/>
+														<div class="thumb-yt">▶</div>
+													} @else {
+														<span
+															class="thumb-emoji">{{ p.fallbackEmoji || catEmoji(p.category) }}</span>
+													}
+												</div>
+												<div class="post-info">
+													<p class="post-title">{{ p.title }}</p>
+													<p class="post-slug">/blog/{{ p.slug }}</p>
+												</div>
+											</div>
+										</td>
+
+										<!-- Category -->
+										<td>
+											<span class="cat-badge">{{ catEmoji(p.category) }} {{ p.category }}</span>
+										</td>
+
+										<!-- Status -->
+										<td>
+											<div class="status-wrap">
+												<button class="status-btn"
+														[class.status-live]="p.published"
+														[class.status-draft]="!p.published">
+													<span class="status-led"></span>
+													{{ p.published ? 'Live' : 'Draft' }}
+												</button>
+												@if (p.featured) {
+													<span class="feat-badge">⭐ Featured</span>
+												}
+											</div>
+										</td>
+
+										<!-- Date -->
+										<td class="td-date">
+											<span class="date-text">{{ svc.formatDate(p.createdAt) }}</span>
+											<span class="read-time">{{ p.readTime }}</span>
+										</td>
+
+										<!-- Actions -->
+										<td class="th-actions">
+											<div class="row-actions">
+												<button class="act-btn act-edit" (click)="openEdit(p)" title="Edit">
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+														 stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round"
+															  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+													</svg>
+												</button>
+												<button class="act-btn act-toggle" (click)="togglePub(p)"
+														[title]="p.published ? 'Unpublish' : 'Publish'">
+													@if (p.published) {
+														<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+															 stroke="currentColor" stroke-width="2">
+															<path stroke-linecap="round" stroke-linejoin="round"
+																  d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+														</svg>
+													} @else {
+														<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+															 stroke="currentColor" stroke-width="2">
+															<path stroke-linecap="round" stroke-linejoin="round"
+																  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+															<path stroke-linecap="round" stroke-linejoin="round"
+																  d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+														</svg>
+													}
+												</button>
+												<button class="act-btn act-del" (click)="askDelete(p)" title="Delete">
+													<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+														 stroke="currentColor" stroke-width="2">
+														<path stroke-linecap="round" stroke-linejoin="round"
+															  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+													</svg>
+												</button>
+											</div>
+										</td>
+
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+
+					<!-- ── Pagination ── -->
+					@if (totalPages() > 1) {
+						<div class="pagination">
+							<span class="pg-info">Page {{ page() }} of {{ totalPages() }}</span>
+
+							<div class="pg-controls">
+								<!-- Prev -->
+								<button class="pg-btn" [disabled]="page() === 1" (click)="prevPage()">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										 stroke-width="2.5">
+										<polyline points="15 18 9 12 15 6"/>
+									</svg>
+								</button>
+
+								@for (p of pageNumbers(); track $index) {
+									@if (p === '...') {
+										<span class="pg-dots">…</span>
+									} @else {
+										<button class="pg-num" [class.pg-active]="page() === p"
+												(click)="goPage(p)">{{ p }}
+										</button>
+									}
+								}
+
+								<!-- Next -->
+								<button class="pg-btn" [disabled]="page() === totalPages()" (click)="nextPage()">
+									<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										 stroke-width="2.5">
+										<polyline points="9 18 15 12 9 6"/>
+									</svg>
+								</button>
+							</div>
+						</div>
+					}
+				}
+			</div><!-- /table-card -->
+
+		</div>
+	}<!-- /list view -->
+
+	<!-- ══════════════════════════════════════════
+		 FORM VIEW
+	══════════════════════════════════════════ -->
+	@if (view() === 'form') {
+		<div class="fi">
+
+			<!-- Form Header -->
+			<div class="form-header">
+				<div class="form-header__left">
+					<button class="btn-g" (click)="backToList()">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+							 stroke-width="2">
+							<path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+						</svg>
+						Back to Posts
+					</button>
+					<span class="breadcrumb-sep">›</span>
+					<span class="form-breadcrumb">{{ editId() ? 'Edit Post' : 'New Post' }}</span>
+				</div>
+				<a routerLink="/blog" target="_blank" class="view-link">
+					View Blog
+					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path stroke-linecap="round" stroke-linejoin="round"
+							  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+					</svg>
+				</a>
+			</div>
+
+			<form [formGroup]="form" (ngSubmit)="save()">
+				<div class="form-grid">
+
+					<!-- ── Left column ── -->
+					<div class="form-left">
+
+						<!-- Content card -->
+						<div class="f-card">
+							<div class="sec-hd">
+								<span>📝</span>
+								<h3 class="sec-title">Content</h3>
+							</div>
+
+							<div class="field">
+								<label class="lbl">Title <span class="req">*</span></label>
+								<input type="text" formControlName="title" (input)="autoSlug()"
+									   placeholder="e.g. New Student Visa Conditions 2025"
+									   class="inp inp--lg" [class.inp--err]="inv('title')"/>
+								@if (inv('title')) {
+									<p class="err-msg">Title is required.</p>
+								}
+							</div>
+
+							<div class="field-row">
+								<div class="field">
+									<label class="lbl">URL Slug <span class="req">*</span></label>
+									<div class="slug-wrap" [class.slug-wrap--err]="inv('slug')">
+										<span class="slug-prefix">/blog/</span>
+										<input type="text" formControlName="slug" placeholder="url-slug"
+											   class="inp slug-inp"/>
+									</div>
+									@if (inv('slug')) {
+										<p class="err-msg">Slug is required.</p>
+									}
+								</div>
+								<div class="field">
+									<label class="lbl">Category <span class="req">*</span></label>
+									<select formControlName="category" class="inp" [class.inp--err]="inv('category')">
+										<option value="" disabled>Select category…</option>
+										@for (c of categories; track c) {
+											<option [value]="c">{{ catEmoji(c) }} {{ c }}</option>
+										}
+									</select>
+									@if (inv('category')) {
+										<p class="err-msg">Category is required.</p>
+									}
+								</div>
+							</div>
+
+							<div class="field">
+								<label class="lbl">Excerpt <span class="req">*</span> <span class="lbl-hint">1–2 sentence summary</span></label>
+								<textarea formControlName="excerpt" rows="2"
+										  placeholder="Short summary for the listing page…"
+										  class="inp inp--area" [class.inp--err]="inv('excerpt')"></textarea>
+								@if (inv('excerpt')) {
+									<p class="err-msg">Excerpt required (max 200 chars).</p>
+								}
+								<div class="char-counter">
+                  <span [class.warn]="(form.get('excerpt')?.value?.length ?? 0) > 180">
+                    {{ form.get('excerpt')?.value?.length ?? 0 }}
+                  </span> / 200
+								</div>
+							</div>
+						</div>
+
+						<!-- Article content / Quill -->
+						<div class="f-card">
+							<div class="sec-hd sec-hd--spaced">
+								<div class="sec-hd">
+									<span>✍️</span>
+									<h3 class="sec-title">Article Content</h3>
+								</div>
+								<span class="read-est">~{{ estimateRead() }}</span>
+							</div>
+							@if (!quillReady()) {
+								<div class="editor-loading">
+									<div class="spinner spinner--sm"></div>
+									<span>Loading editor…</span>
+								</div>
+							}
+							<div class="ql-wrapper" [style.display]="quillReady() ? 'block' : 'none'">
+								<div #quillEditor></div>
+							</div>
+							<p class="hint">Use the toolbar to format text — bold, headings, lists, links.</p>
+						</div>
+
+						<!-- Media card -->
+						<div class="f-card">
+							<div class="sec-hd">
+								<span>🖼️</span>
+								<h3 class="sec-title">Media</h3>
+							</div>
+							<p class="field-desc">Paste a direct URL to your image or video — no file uploads
+								needed.</p>
+
+							<div class="media-tabs">
+								@for (m of mediaOpts; track m.val) {
+									<button type="button" class="media-tab" [class.media-tab--on]="media() === m.val"
+											(click)="media.set(m.val)">
+										<span>{{ m.icon }}</span><span>{{ m.label }}</span>
+									</button>
+								}
+							</div>
+
+							@if (media() === 'image') {
+								<div class="field">
+									<label class="lbl">Image URL</label>
+									<div class="url-wrap">
+										<span class="url-ico">🔗</span>
+										<input type="url" formControlName="imageUrl" placeholder="https://…"
+											   class="inp url-inp"/>
+									</div>
+									<p class="hint">Unsplash, Cloudinary, S3, CDN — all work.</p>
+								</div>
+								<div class="field">
+									<label class="lbl">Alt Text</label>
+									<input type="text" formControlName="imageAlt" placeholder="Describe the image"
+										   class="inp"/>
+								</div>
+								<div class="media-preview">
+									@if (form.get('imageUrl')?.value) {
+										<img [src]="form.get('imageUrl')?.value"
+											 [alt]="form.get('imageAlt')?.value || 'preview'"
+											 (error)="imgError = true" (load)="imgError = false"/>
+										@if (imgError) {
+											<div class="media-placeholder">
+												<span>⚠️</span>
+												<p>Could not load image. Check the URL.</p>
+											</div>
+										}
+									} @else {
+										<div class="media-placeholder"><span>🖼️</span>
+											<p>Paste a URL above to preview</p></div>
+									}
+								</div>
+							}
+
+							@if (media() === 'youtube') {
+								<div class="field">
+									<label class="lbl">YouTube URL</label>
+									<div class="url-wrap">
+										<span class="url-ico">▶️</span>
+										<input type="url" formControlName="youtubeUrl"
+											   placeholder="https://www.youtube.com/watch?v=…"
+											   class="inp url-inp" (input)="parseYoutubeUrl()"/>
+									</div>
+									<p class="hint">Paste the full YouTube link or just the Video ID.</p>
+								</div>
+								@if (form.get('youtubeId')?.value) {
+									<span class="yt-id-badge">✅ ID: {{ form.get('youtubeId')?.value }}</span>
+									<div class="yt-preview">
+										<img [src]="ytThumb(form.get('youtubeId')?.value)" class="yt-thumb"
+											 alt="YouTube Preview"/>
+										<div class="yt-play">▶</div>
+									</div>
+								} @else if (form.get('youtubeUrl')?.value) {
+									<div class="url-error">❌ Invalid YouTube URL. Please check the link.</div>
+								}
+							}
+
+							@if (media() === 'video') {
+								<div class="field">
+									<label class="lbl">Video URL (MP4 / WebM)</label>
+									<div class="url-wrap">
+										<span class="url-ico">🎬</span>
+										<input type="url" formControlName="videoUrl"
+											   placeholder="https://cdn.example.com/video.mp4"
+											   class="inp url-inp"/>
+									</div>
+								</div>
+								<div class="media-preview">
+									@if (form.get('videoUrl')?.value) {
+										<video [src]="form.get('videoUrl')?.value" controls preload="metadata"></video>
+									} @else {
+										<div class="media-placeholder"><span>🎬</span>
+											<p>Paste a video URL above to preview</p></div>
+									}
+								</div>
+							}
+
+							@if (media() === 'none') {
+								<div class="field">
+									<label class="lbl">Fallback Emoji</label>
+									<input type="text" formControlName="fallbackEmoji" placeholder="🌏"
+										   class="inp emoji-inp"/>
+									<p class="hint">Displayed as thumbnail when no media is set.</p>
+								</div>
+							}
+						</div>
+
+						<!-- Author card -->
+						<div class="f-card">
+							<div class="sec-hd"><span>👤</span>
+								<h3 class="sec-title">Author & Details</h3></div>
+							<div class="field-row">
+								<div class="field">
+									<label class="lbl">Author Name <span class="req">*</span></label>
+									<input type="text" formControlName="author" placeholder="Dr. Sarah Kim"
+										   class="inp" [class.inp--err]="inv('author')"/>
+								</div>
+								<div class="field">
+									<label class="lbl">Author Role</label>
+									<input type="text" formControlName="authorRole" placeholder="Senior Migration Agent"
+										   class="inp"/>
+								</div>
+							</div>
+							<div class="field">
+								<label class="lbl">Author Colour</label>
+								<div class="color-row">
+									<input type="color" formControlName="authorColor" class="color-picker"/>
+									<input type="text" formControlName="authorColor" class="inp color-hex"/>
+									<div class="color-swatches">
+										@for (c of authorColors; track c) {
+											<button type="button" class="swatch" [style.background]="c"
+													[class.swatch--on]="form.get('authorColor')?.value === c"
+													(click)="form.patchValue({ authorColor: c })"></button>
+										}
+									</div>
+								</div>
+							</div>
+							<div class="field">
+								<label class="lbl">Tags <span class="lbl-hint">comma-separated</span></label>
+								<input type="text" formControlName="tagsRaw" placeholder="studentvisa, australia, 2025"
+									   class="inp"/>
+							</div>
+						</div>
+
+					</div><!-- /form-left -->
+
+					<!-- ── Sidebar ── -->
+					<div class="form-sidebar">
+
+						<!-- Publish -->
+						<div class="f-card">
+							<h3 class="sidebar-title">Publish Settings</h3>
+
+							<div class="toggle-row">
+								<div>
+									<p class="toggle-lbl">Status</p>
+									<p class="toggle-desc">{{ form.get('published')?.value ? 'Live on blog' : 'Hidden draft' }}</p>
+								</div>
+								<label class="toggle">
+									<input type="checkbox" formControlName="published"/>
+									<div class="toggle-track"></div>
+									<div class="toggle-thumb"></div>
+								</label>
+							</div>
+
+							<div class="toggle-row">
+								<div>
+									<p class="toggle-lbl">Featured</p>
+									<p class="toggle-desc">Pin at top of blog</p>
+								</div>
+								<label class="toggle">
+									<input type="checkbox" formControlName="featured"/>
+									<div class="toggle-track"></div>
+									<div class="toggle-thumb"></div>
+								</label>
+							</div>
+
+							<div class="pub-actions">
+								<button type="submit" class="btn-p btn-p--full" [disabled]="saving()">
+									@if (saving()) {
+										<svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none">
+											<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"
+													class="opacity-25"/>
+											<path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+												  class="opacity-75"/>
+										</svg>Saving…
+									} @else {
+										{{ editId() ? '💾 Update Post' : '🚀 Publish Post' }}
+									}
+								</button>
+								<button type="button" class="btn-g btn-g--full" (click)="saveDraft()"
+										[disabled]="saving()">
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										 stroke-width="2">
+										<path stroke-linecap="round" stroke-linejoin="round"
+											  d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+									</svg>
+									Save as Draft
+								</button>
+							</div>
+
+							@if (ok()) {
+								<div class="alert-ok">✅ {{ editId() ? 'Post updated!' : 'Post created!' }}</div>
+							}
+							@if (errMsg()) {
+								<div class="alert-err">❌ {{ errMsg() }}</div>
+							}
+						</div>
+
+						<!-- Quick category -->
+						<div class="f-card">
+							<h3 class="sidebar-title">Quick Category</h3>
+							<div class="cat-grid">
+								@for (c of categories; track c) {
+									<button type="button" class="cat-chip"
+											[class.cat-chip--on]="form.get('category')?.value === c"
+											(click)="form.patchValue({category: c})">
+										{{ catEmoji(c) }} {{ c }}
+									</button>
+								}
+							</div>
+						</div>
+
+						<!-- Card preview -->
+						<div class="f-card">
+							<h3 class="sidebar-title">Card Preview</h3>
+							<div class="ppc">
+								<div class="ppc-thumb">
+									@if (media() === 'image' && form.get('imageUrl')?.value) {
+										<img [src]="form.get('imageUrl')?.value" alt="preview"/>
+									} @else if (media() === 'youtube' && form.get('youtubeId')?.value) {
+										<img [src]="ytThumb(form.get('youtubeId')?.value)" alt="preview"/>
+									} @else {
+										<span>{{ form.get('fallbackEmoji')?.value || catEmoji(form.get('category')?.value) || '📝' }}</span>
+									}
+								</div>
+								<div class="ppc-body">
+									<span
+										class="ppc-cat">{{ catEmoji(form.get('category')?.value) }} {{ form.get('category')?.value || 'Category' }}</span>
+									<p class="ppc-title">{{ form.get('title')?.value || 'Post title will appear here…' }}</p>
+									<p class="ppc-excerpt">{{ form.get('excerpt')?.value || 'Excerpt preview…' }}</p>
+									<div class="ppc-meta">
+										<span>{{ form.get('author')?.value || 'Author' }}</span>
+										<span>·</span>
+										<span>{{ estimateRead() }}</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+					</div><!-- /sidebar -->
+				</div>
+			</form>
+		</div>
+	}<!-- /form view -->
+
+</div>

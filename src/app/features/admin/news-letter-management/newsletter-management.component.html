@@ -1,0 +1,480 @@
+<div class="page">
+
+	@if (view() === 'list') {
+
+		<div class="page-head">
+			<div>
+				<h1 class="page-title">Newsletter Management</h1>
+				<p class="page-sub">Create, edit and publish your newsletters</p>
+			</div>
+			<div class="head-actions">
+				<button class="btn-g" (click)="seedData()">
+					Seed Data
+				</button>
+				<button class="btn-g" (click)="fetchAll()">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+						<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+						<path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+					</svg>
+					Refresh
+				</button>
+				<button class="btn-p" (click)="openNew()">
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+						<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+					</svg>
+					New Newsletter
+				</button>
+			</div>
+		</div>
+
+		@if (errMsg()) {
+			<div class="err-banner">
+				<span>⚠️ {{ errMsg() }}</span>
+				<button (click)="errMsg.set('')">✕</button>
+			</div>
+		}
+
+		<div class="stat-grid">
+			@for (s of stats(); track s.label) {
+				<div class="stat-card stat-{{ s.color }}">
+					<div class="stat-icon">{{ s.icon }}</div>
+					<div class="stat-body">
+						<div class="stat-val">{{ s.val }}</div>
+						<div class="stat-lbl">{{ s.label }}</div>
+					</div>
+				</div>
+			}
+		</div>
+
+		<div class="filter-bar">
+			<div class="search-wrap">
+				<svg class="search-ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+					<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+				</svg>
+				<input class="search-input" type="text" placeholder="Search newsletters…"
+					   [(ngModel)]="searchQ" (ngModelChange)="applyFilter()" />
+			</div>
+
+			<div class="filter-chips">
+				<button class="chip" [class.chip-on]="filterStatus === 'all'"
+						(click)="filterStatus = 'all'; applyFilter()">All</button>
+				<button class="chip" [class.chip-on]="filterStatus === 'published'"
+						(click)="filterStatus = 'published'; applyFilter()">Published</button>
+				<button class="chip" [class.chip-on]="filterStatus === 'draft'"
+						(click)="filterStatus = 'draft'; applyFilter()">Drafts</button>
+			</div>
+
+			<select class="filter-select" [(ngModel)]="filterTag" (ngModelChange)="applyFilter()">
+				<option value="all">All Tags</option>
+				@for (t of tags; track t) {
+					<option [value]="t">{{ t }}</option>
+				}
+			</select>
+
+			<div class="pg-size-wrap">
+				<label class="pg-size-lbl">Rows</label>
+				<select class="pg-size-sel" [value]="pageSize()"
+						(change)="onPageSizeChange(+$any($event.target).value)">
+					<option value="5">5</option>
+					<option value="10">10</option>
+					<option value="25">25</option>
+					<option value="50">50</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="card">
+			@if (loading()) {
+				<div class="loading-state">
+					<div class="spinner"></div>
+					<p>Loading newsletters…</p>
+				</div>
+			} @else if (shown().length === 0) {
+				<div class="empty-state">
+					<div class="empty-icon">📭</div>
+					<p class="empty-title">No newsletters found</p>
+					<p class="empty-sub">Try adjusting your filters or create a new newsletter.</p>
+					<button class="btn-p mt-3" (click)="openNew()">Create Newsletter</button>
+				</div>
+			} @else {
+				<div class="table-wrap">
+					<table>
+						<thead>
+						<tr>
+							<th>Newsletter</th>
+							<th>Tag</th>
+							<th>Period</th>
+							<th>Author</th>
+							<th>Read Time</th>
+							<th>Views</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+						</thead>
+						<tbody>
+							@for (n of paged(); track n.id) {
+								<tr class="fi">
+									<!-- Title + excerpt -->
+									<td class="td-title">
+										@if (n.coverImage) {
+											<img class="cover-thumb" [src]="n.coverImage" [alt]="n.title" />
+										} @else {
+											<div class="cover-fallback">📰</div>
+										}
+										<div class="title-col">
+											<span class="title-text">{{ n.title }}</span>
+											<span class="excerpt-text">{{ n.excerpt | slice:0:80 }}…</span>
+											@if (n.featured) {
+												<span class="feat-badge">⭐ Featured</span>
+											}
+										</div>
+									</td>
+
+									<!-- Tag -->
+									<td><span class="tag {{ tagCls(n.tag) }}">{{ n.tag }}</span></td>
+
+									<!-- Period -->
+									<td class="td-period">
+										<span class="period-month">{{ n.month }}</span>
+										<span class="period-year">{{ n.year }}</span>
+									</td>
+
+									<!-- Author -->
+									<td class="td-author">
+										@if (n.authorAvatar) {
+											<img class="author-av" [src]="n.authorAvatar" [alt]="n.author" />
+										} @else {
+											<div class="author-av-placeholder" [style.background]="avatarColor(n.author)">
+												{{ authorInitials(n.author) }}
+											</div>
+										}
+										<div>
+											<div class="author-name">{{ n.author }}</div>
+											<div class="author-role">{{ n.authorTitle }}</div>
+										</div>
+									</td>
+
+									<!-- Read Time -->
+									<td class="td-meta">{{ n.readTime }}</td>
+
+									<!-- Views -->
+									<td class="td-meta">
+										<span class="views-badge">👁 {{ n.viewCount | number }}</span>
+									</td>
+
+									<!-- Status toggle -->
+									<td>
+										<button class="status-toggle"
+												[class.pub]="n.status === 'published'"
+												[class.draft]="n.status === 'draft'"
+												(click)="toggleStatus(n)"
+												[title]="'Click to ' + (n.status === 'published' ? 'unpublish' : 'publish')">
+											{{ n.status === 'published' ? '✅ Published' : '📝 Draft' }}
+										</button>
+									</td>
+
+									<!-- Actions -->
+									<td>
+										<div class="action-row">
+											<button class="btn-icon btn-icon-star"
+													[title]="n.featured ? 'Remove from featured' : 'Mark as featured'"
+													(click)="toggleFeatured(n)">
+												{{ n.featured ? '⭐' : '☆' }}
+											</button>
+											<button class="btn-icon btn-icon-edit" title="Edit" (click)="openEdit(n)">
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+													<path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+													<path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+												</svg>
+											</button>
+											<button class="btn-icon btn-icon-del" title="Delete" (click)="deleteItem(n)">
+												<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+													<polyline points="3 6 5 6 21 6"/>
+													<path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+													<path d="M10 11v6M14 11v6"/>
+													<path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
+												</svg>
+											</button>
+										</div>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+
+				<!-- Pagination -->
+				<div class="pagination">
+					<span class="pg-info">
+						Showing <strong>{{ pageStart() }}–{{ pageEnd() }}</strong>
+						of <strong>{{ shown().length }}</strong> newsletters
+					</span>
+
+					<div class="pg-controls">
+						<!-- Prev -->
+						<button class="pg-btn" [disabled]="page() === 1" (click)="prevPage()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+								<polyline points="15 18 9 12 15 6"/>
+							</svg>
+						</button>
+
+						@for (p of pageNumbers(); track $index) {
+							@if (p === '...') {
+								<span class="pg-dots">…</span>
+							} @else {
+								<button class="pg-btn pg-num"
+										[class.pg-active]="page() === p"
+										(click)="goPage(p)">{{ p }}</button>
+							}
+						}
+
+						<!-- Next -->
+						<button class="pg-btn" [disabled]="page() === totalPages()" (click)="nextPage()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+								<polyline points="9 18 15 12 9 6"/>
+							</svg>
+						</button>
+					</div>
+				</div>
+
+			}
+		</div>
+	}
+
+	<!-- ══════════════════════════════════════════
+		 FORM VIEW
+	══════════════════════════════════════════ -->
+	@if (view() === 'form') {
+		<div class="form-view" [formGroup]="form">
+
+			<!-- Form Header -->
+			<div class="form-head">
+				<button class="back-btn" (click)="backToList()">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+						<polyline points="15 18 9 12 15 6"/>
+					</svg>
+					Back to list
+				</button>
+				<div class="form-title-wrap">
+					<h2 class="form-title">
+						{{ editId() ? 'Edit Newsletter' : 'New Newsletter' }}
+					</h2>
+					<p class="form-sub">{{ estimateRead() }} · Fill in the details below</p>
+				</div>
+				<div class="form-actions">
+					@if (saving()) {
+						<div class="saving-state">
+							<div class="spinner-sm"></div> Saving…
+						</div>
+					} @else {
+						@if (ok()) {
+							<span class="ok-badge">✅ Saved!</span>
+						}
+						<button class="btn-s" (click)="saveDraft()">Save Draft</button>
+						<button class="btn-p" (click)="save()">
+							{{ editId() ? 'Update' : 'Publish' }}
+						</button>
+					}
+				</div>
+			</div>
+
+			<!-- Error in form -->
+			@if (errMsg()) {
+				<div class="err-banner mb-4">
+					<span>⚠️ {{ errMsg() }}</span>
+					<button (click)="errMsg.set('')">✕</button>
+				</div>
+			}
+
+			<!-- Form Grid -->
+			<div class="form-grid">
+
+				<!-- ── LEFT COLUMN ── -->
+				<div class="form-col-main">
+
+					<!-- Basic Info Card -->
+					<div class="form-card">
+						<div class="form-card-hd">
+							<span class="sec-hd">📄 Basic Information</span>
+						</div>
+						<div class="form-card-body">
+
+							<!-- Title -->
+							<div class="field">
+								<label class="lbl" for="title">Title <span class="req">*</span></label>
+								<input id="title" class="inp" [class.err]="inv('title')"
+									   formControlName="title" placeholder="e.g. November 2025 Newsletter" />
+								@if (inv('title')) {
+									<p class="err-msg">Title is required.</p>
+								}
+							</div>
+
+							<!-- Excerpt -->
+							<div class="field">
+								<label class="lbl" for="excerpt">Excerpt <span class="req">*</span></label>
+								<textarea id="excerpt" class="inp inp-ta" [class.err]="inv('excerpt')"
+										  formControlName="excerpt" rows="3"
+										  placeholder="Brief summary shown in the newsletter list…"></textarea>
+								<div class="char-count">
+									<span [class.char-over]="excerptLen > 300">{{ excerptLen }}</span>/300
+									@if (inv('excerpt')) {
+										<span class="err-msg">· Required, max 300 chars.</span>
+									}
+								</div>
+							</div>
+
+							<!-- Tag + Status Row -->
+							<div class="field-row">
+								<div class="field">
+									<label class="lbl" for="tag">Tag <span class="req">*</span></label>
+									<select id="tag" class="inp" formControlName="tag">
+										@for (t of tags; track t) {
+											<option [value]="t">{{ t }}</option>
+										}
+									</select>
+								</div>
+								<div class="field">
+									<label class="lbl" for="status">Status <span class="req">*</span></label>
+									<select id="status" class="inp" formControlName="status">
+										<option value="draft">Draft</option>
+										<option value="published">Published</option>
+									</select>
+								</div>
+							</div>
+
+							<!-- Month + Year Row -->
+							<div class="field-row">
+								<div class="field">
+									<label class="lbl" for="month">Month <span class="req">*</span></label>
+									<select id="month" class="inp" formControlName="month">
+										@for (m of months; track m) {
+											<option [value]="m">{{ m }}</option>
+										}
+									</select>
+								</div>
+								<div class="field">
+									<label class="lbl" for="year">Year <span class="req">*</span></label>
+									<select id="year" class="inp" formControlName="year">
+										@for (y of years; track y) {
+											<option [value]="y">{{ y }}</option>
+										}
+									</select>
+								</div>
+							</div>
+
+						</div>
+					</div>
+
+					<!-- Content Editor Card -->
+					<div class="form-card">
+						<div class="form-card-hd">
+							<span class="sec-hd">✍️ Content</span>
+							<span class="read-chip">{{ estimateRead() }}</span>
+						</div>
+						<div class="form-card-body p-0">
+							<div class="quill-wrap">
+								@if (!quillReady()) {
+									<div class="quill-loading">
+										<div class="spinner-sm"></div>
+										<span>Loading editor…</span>
+									</div>
+								}
+								<div #quillEditor></div>
+							</div>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="form-col-side">
+
+					<div class="form-card">
+						<div class="form-card-hd">
+							<span class="sec-hd">🖼️ Cover Image</span>
+						</div>
+						<div class="form-card-body">
+							<div class="field">
+								<label class="lbl" for="coverImage">Image URL</label>
+								<input id="coverImage" class="inp" formControlName="coverImage"
+									   placeholder="https://…" />
+								<p class="hint">Paste a direct image link (JPG, PNG, WebP)</p>
+							</div>
+							@if (form.get('coverImage')?.value) {
+								<div class="img-preview">
+									<img [src]="form.get('coverImage')?.value" alt="Cover preview" />
+								</div>
+							} @else {
+								<div class="img-placeholder">
+									<span class="img-ph-icon">🖼️</span>
+									<p>No cover image</p>
+								</div>
+							}
+						</div>
+					</div>
+
+					<div class="form-card">
+						<div class="form-card-hd">
+							<span class="sec-hd">👤 Author</span>
+						</div>
+						<div class="form-card-body">
+							<div class="field">
+								<label class="lbl" for="author">Name <span class="req">*</span></label>
+								<input id="author" class="inp" [class.err]="inv('author')"
+									   formControlName="author" placeholder="Author name" />
+							</div>
+							<div class="field">
+								<label class="lbl" for="authorTitle">Title <span class="req">*</span></label>
+								<input id="authorTitle" class="inp" [class.err]="inv('authorTitle')"
+									   formControlName="authorTitle" placeholder="e.g. Education Consultant" />
+							</div>
+							<div class="field">
+								<label class="lbl" for="authorAvatar">Avatar URL</label>
+								<input id="authorAvatar" class="inp" formControlName="authorAvatar"
+									   placeholder="https://…" />
+							</div>
+						</div>
+					</div>
+
+					<div class="form-card">
+						<div class="form-card-hd">
+							<span class="sec-hd">⚙️ Settings</span>
+						</div>
+						<div class="form-card-body">
+							<label class="toggle-row">
+								<div>
+									<div class="toggle-lbl">Featured</div>
+									<div class="toggle-hint">Pin to top of the newsletter page</div>
+								</div>
+								<label class="toggle">
+									<input type="checkbox" formControlName="featured" />
+									<span class="toggle-track"></span>
+									<span class="toggle-thumb"></span>
+								</label>
+							</label>
+						</div>
+					</div>
+
+					<div class="form-card quick-card">
+						<div class="form-card-body">
+							<button class="btn-p btn-full" (click)="save()" [disabled]="saving()">
+								@if (saving()) {
+									<div class="spinner-sm white"></div> Saving…
+								} @else {
+									{{ editId() ? '💾 Update Newsletter' : '🚀 Publish Newsletter' }}
+								}
+							</button>
+							<button class="btn-s btn-full mt-2" (click)="saveDraft()" [disabled]="saving()">
+								📝 Save as Draft
+							</button>
+							<button class="btn-ghost btn-full mt-2" (click)="backToList()">
+								Cancel
+							</button>
+						</div>
+					</div>
+
+				</div>
+			</div>
+		</div>
+	}
+
+</div>

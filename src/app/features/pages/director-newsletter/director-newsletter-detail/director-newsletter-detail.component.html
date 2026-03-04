@@ -1,0 +1,197 @@
+<div class="det-page">
+
+	<!-- Read Progress Bar -->
+	<div class="progress-bar" [style.width.%]="readProgress()"></div>
+
+	<!-- ── Loading ── -->
+	@if (loading()) {
+		<div class="det-loading">
+			<div class="det-sk">
+				<div class="dsk-hero"></div>
+				<div class="dsk-body">
+					<div class="sk-line sk-xs"></div>
+					<div class="sk-line sk-xl"></div>
+					<div class="sk-line sk-lg"></div>
+					<div class="sk-line sk-md"></div>
+					<div class="sk-line sk-md"></div>
+				</div>
+			</div>
+		</div>
+	}
+
+	<!-- ── Error ── -->
+	@if (errMsg() && !loading()) {
+		<div class="det-err">
+			<span>⚠️</span>
+			<h3>{{ errMsg() }}</h3>
+			<button (click)="goBack()">← Back to Newsletters</button>
+		</div>
+	}
+
+	<!-- ── Content ── -->
+	@if (newsletter() && !loading()) {
+		<!-- Hero -->
+		<div class="det-hero" [class.det-hero-img]="newsletter()!.coverImage">
+			@if (newsletter()!.coverImage) {
+				<img [src]="newsletter()!.coverImage" [alt]="newsletter()!.title" class="det-hero-bg" />
+				<div class="det-hero-overlay"></div>
+			}
+			<div class="det-hero-inner">
+				<button class="back-btn" (click)="goBack()">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+						 stroke="currentColor" stroke-width="2.5">
+						<polyline points="15 18 9 12 15 6"/>
+					</svg>
+					All Newsletters
+				</button>
+				<div class="det-meta">
+					<span class="tag {{ tagCls(newsletter()!.tag) }}">{{ newsletter()!.tag }}</span>
+					<span class="det-period">{{ newsletter()!.month }} {{ newsletter()!.year }}</span>
+					<span class="det-dot">·</span>
+					<span class="det-read">{{ newsletter()!.readTime }}</span>
+					<span class="det-dot">·</span>
+					<span class="det-views">👁 {{ newsletter()!.viewCount | number }} views</span>
+					@if (newsletter()!.featured) {
+						<span class="feat-pill">⭐ Featured</span>
+					}
+				</div>
+				<h1 class="det-title">{{ newsletter()!.title }}</h1>
+				<p class="det-excerpt">{{ newsletter()!.excerpt }}</p>
+				<div class="det-author">
+					@if (newsletter()!.authorAvatar) {
+						<img [src]="newsletter()!.authorAvatar" [alt]="newsletter()!.author" class="det-av" />
+					} @else {
+						<div class="det-av det-av-gen" [style.background]="avatarColor(newsletter()!.author)">
+							{{ authorInitials(newsletter()!.author) }}
+						</div>
+					}
+					<div class="det-av-info">
+						<span class="det-av-name">{{ newsletter()!.author }}</span>
+						<span class="det-av-role">{{ newsletter()!.authorTitle }}</span>
+					</div>
+					<span class="det-date">{{ formatDate(newsletter()!.publishedAt) }}</span>
+				</div>
+			</div>
+		</div>
+
+		<!-- Article Body -->
+		<div class="det-layout">
+			<article class="det-article">
+				<div class="det-content" [innerHTML]="newsletter()!.content"></div>
+
+				<!-- Tags / Share footer -->
+				<div class="det-article-footer">
+					<span class="tag {{ tagCls(newsletter()!.tag) }}">{{ newsletter()!.tag }}</span>
+					<div class="share-row">
+						<span class="share-lbl">Share</span>
+						<button class="share-btn" title="Copy link" (click)="copyLink()">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+								 stroke="currentColor" stroke-width="2.2">
+								<path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/>
+								<path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+							</svg>
+							Copy Link
+						</button>
+					</div>
+				</div>
+			</article>
+
+			<!-- Sidebar -->
+			<aside class="det-sidebar">
+				<!-- Author Card -->
+				<div class="sidebar-card">
+					<div class="sc-hd">About the Author</div>
+					<div class="sc-author">
+						@if (newsletter()!.authorAvatar) {
+							<img [src]="newsletter()!.authorAvatar" [alt]="newsletter()!.author" class="sc-av" />
+						} @else {
+							<div class="sc-av sc-av-gen" [style.background]="avatarColor(newsletter()!.author)">
+								{{ authorInitials(newsletter()!.author) }}
+							</div>
+						}
+						<div class="sc-av-name">{{ newsletter()!.author }}</div>
+						<div class="sc-av-role">{{ newsletter()!.authorTitle }}</div>
+					</div>
+				</div>
+
+				<!-- Stats Card -->
+				<div class="sidebar-card">
+					<div class="sc-hd">Article Info</div>
+					<div class="sc-stats">
+						<div class="sc-stat">
+							<span class="sc-stat-ico">📅</span>
+							<div>
+								<div class="sc-stat-lbl">Published</div>
+								<div class="sc-stat-val">{{ formatDate(newsletter()!.publishedAt) }}</div>
+							</div>
+						</div>
+						<div class="sc-stat">
+							<span class="sc-stat-ico">⏱</span>
+							<div>
+								<div class="sc-stat-lbl">Read Time</div>
+								<div class="sc-stat-val">{{ newsletter()!.readTime }}</div>
+							</div>
+						</div>
+						<div class="sc-stat">
+							<span class="sc-stat-ico">👁</span>
+							<div>
+								<div class="sc-stat-lbl">Views</div>
+								<div class="sc-stat-val">{{ newsletter()!.viewCount | number }}</div>
+							</div>
+						</div>
+						<div class="sc-stat">
+							<span class="sc-stat-ico">🗂</span>
+							<div>
+								<div class="sc-stat-lbl">Category</div>
+								<div class="sc-stat-val">{{ newsletter()!.tag }}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Back btn -->
+				<button class="sc-back-btn" (click)="goBack()">
+					← Back to all newsletters
+				</button>
+			</aside>
+		</div>
+
+		<!-- Related Articles -->
+		@if (related().length > 0) {
+			<div class="related-section">
+				<div class="rel-hd">
+					<span class="sl-dot"></span> More in {{ newsletter()!.tag }}
+				</div>
+				<div class="related-grid">
+					@for (n of related(); track n.id) {
+						<article class="rel-card" (click)="goDetail(n)">
+							<div class="rel-img-wrap">
+								@if (n.coverImage) {
+									<img [src]="n.coverImage" [alt]="n.title" />
+								} @else {
+									<div class="rel-fallback">📰</div>
+								}
+							</div>
+							<div class="rel-body">
+								<span class="tag {{ tagCls(n.tag) }}">{{ n.tag }}</span>
+								<h4 class="rel-title">{{ n.title }}</h4>
+								<div class="rel-meta">
+									@if (n.authorAvatar) {
+										<img [src]="n.authorAvatar" [alt]="n.author" class="rel-av" />
+									} @else {
+										<div class="rel-av rel-av-gen" [style.background]="avatarColor(n.author)">
+											{{ authorInitials(n.author) }}
+										</div>
+									}
+									<span class="rel-author">{{ n.author }}</span>
+									<span class="rel-read">{{ n.readTime }}</span>
+								</div>
+							</div>
+						</article>
+					}
+				</div>
+			</div>
+		}
+	}
+
+</div>

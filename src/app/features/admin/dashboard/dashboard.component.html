@@ -1,0 +1,271 @@
+<div class="dash-page">
+
+	@if (loading()) {
+		<div class="sk-wrap">
+			<div class="sk-head">
+				<div class="sk-line w-48 h-7"></div>
+				<div class="sk-line w-32 h-4 mt-2"></div>
+			</div>
+			<div class="sk-stat-row">
+				@for (i of [1,2,3,4]; track i) {
+					<div class="sk-stat-card">
+						<div class="sk-line w-10 h-10 rounded-xl"></div>
+						<div class="mt-3 sk-line w-16 h-7"></div>
+						<div class="mt-2 sk-line w-24 h-3"></div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+
+	@if (!loading()) {
+
+		<div class="dash-header">
+			<div>
+				@if (currentUser$ | async; as user) {
+					<p class="dash-greeting">{{ greeting() }}, {{ user.displayName || 'Admin' }} 👋</p>
+				}
+				<h1 class="dash-title">Dashboard Overview</h1>
+			</div>
+			<div class="dash-header-meta">
+        <span class="today-badge">
+          📅 {{ today }}
+        </span>
+			</div>
+		</div>
+
+		<!-- ── Stat Cards ── -->
+		<div class="stat-grid">
+			@for (s of stats(); track s.label) {
+				<a [routerLink]="s.route" class="stat-card">
+					<div class="stat-card-glow"
+						 [style.background]="'linear-gradient(135deg,' + s.grad[0] + '20,' + s.grad[1] + '10)'">
+					</div>
+					<div class="stat-card-inner">
+						<div class="stat-icon-wrap"
+							 [style.background]="s.grad[0] + '18'">
+							<span class="stat-icon">{{ s.icon }}</span>
+						</div>
+						<div class="stat-body">
+							<div class="stat-value"
+								 [style.background]="'linear-gradient(135deg,' + s.grad[0] + ',' + s.grad[1] + ')'"
+								 style="-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">
+								{{ s.value }}
+							</div>
+							<div class="stat-label">{{ s.label }}</div>
+							<div class="stat-sub">{{ s.sub }}</div>
+						</div>
+					</div>
+					<div class="stat-trend" [class.trend-up]="s.trendUp" [class.trend-dn]="!s.trendUp">
+						{{ s.trendUp ? '↑' : '↓' }} {{ s.trend }}
+					</div>
+				</a>
+			}
+		</div>
+
+		<!-- ── Main Grid ── -->
+		<div class="main-grid">
+
+			<!-- LEFT COLUMN -->
+			<div class="col-main">
+
+				<!-- Recent Messages -->
+				<div class="panel">
+					<div class="panel-head">
+						<div class="panel-title">
+							<span class="panel-icon">💬</span>
+							New Messages
+							@if (newMessages().length > 0) {
+								<span class="count-badge">{{ newMessages().length }}</span>
+							}
+						</div>
+						<a routerLink="/admin/messages" class="panel-link">View all →</a>
+					</div>
+
+					@if (newMessages().length === 0) {
+						<div class="empty-state">
+							<span class="empty-ico">🎉</span>
+							<p>No unread messages — all caught up!</p>
+						</div>
+					} @else {
+						<div class="msg-list">
+							@for (m of newMessages(); track m.id) {
+								<div class="msg-row">
+									<div class="msg-av" [style.background]="m.avatarColor || '#6366f1'">
+										{{ m.initials || m.fullName?.charAt(0) || '?' }}
+									</div>
+									<div class="msg-info">
+										<div class="msg-name">{{ m.fullName }}</div>
+										<div class="msg-preview">{{ m.message | slice:0:70 }}{{ m.message?.length > 70 ? '…' : '' }}</div>
+										<div class="msg-meta">
+											<span class="msg-service">{{ m.service }}</span>
+											<span class="msg-dot">·</span>
+											<span class="msg-time">{{ contact.relativeTime(m.createdAt) }}</span>
+										</div>
+									</div>
+									<span class="badge" [class]="msgBadgeClass(m.status)">{{ m.status }}</span>
+								</div>
+							}
+						</div>
+					}
+				</div>
+
+				<!-- Recent Users -->
+				<div class="panel">
+					<div class="panel-head">
+						<div class="panel-title">
+							<span class="panel-icon">👥</span>
+							Recent Users
+						</div>
+						<a routerLink="/admin/users" class="panel-link">Manage →</a>
+					</div>
+					<div class="user-table-wrap">
+						<table class="user-table">
+							<thead>
+							<tr>
+								<th>User</th>
+								<th>Email</th>
+								<th>Role</th>
+								<th>Status</th>
+								<th>Joined</th>
+							</tr>
+							</thead>
+							<tbody>
+								@for (u of recentUsers(); track u.uid) {
+									<tr>
+										<td>
+											<div class="user-cell">
+												<div class="user-av" [style.background]="roleColor(u.role)">
+													{{ u.displayName?.charAt(0)?.toUpperCase() || '?' }}
+												</div>
+												<span class="user-name">{{ u.displayName || '—' }}</span>
+											</div>
+										</td>
+										<td class="td-email">{{ u.email }}</td>
+										<td>
+											<span class="badge" [class]="roleBadgeClass(u.role)">{{ u.role }}</span>
+										</td>
+										<td>
+                      <span class="status-dot" [class.active]="u.isActive" [class.inactive]="!u.isActive">
+                        {{ u.isActive ? 'Active' : 'Inactive' }}
+                      </span>
+										</td>
+										<td class="td-date">{{ contact.formatDate(u.createdAt) }}</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+			</div>
+
+			<!-- RIGHT COLUMN -->
+			<div class="col-side">
+
+				<!-- Quick Actions -->
+				<div class="panel">
+					<div class="panel-head">
+						<div class="panel-title">
+							<span class="panel-icon">⚡</span>
+							Quick Actions
+						</div>
+					</div>
+					<div class="actions-grid">
+						@for (a of quickActions; track a.label) {
+							<a [routerLink]="a.route" class="action-tile"
+							   [style.--a-color]="a.color"
+							   [style.--a-bg]="a.bg">
+								<span class="action-ico">{{ a.icon }}</span>
+								<span class="action-lbl">{{ a.label }}</span>
+							</a>
+						}
+					</div>
+				</div>
+
+				<!-- Newsletter Stats -->
+				<div class="panel nl-stat-panel">
+					<div class="panel-head">
+						<div class="panel-title">
+							<span class="panel-icon">📰</span>
+							Newsletter Stats
+						</div>
+						<a routerLink="/admin/newsletter" class="panel-link">Manage →</a>
+					</div>
+					<div class="nl-stats-body">
+						<div class="nl-stat-item">
+							<div class="nl-stat-val nl-green">{{ newsletterStats().published }}</div>
+							<div class="nl-stat-lbl">Published</div>
+						</div>
+						<div class="nl-divider"></div>
+						<div class="nl-stat-item">
+							<div class="nl-stat-val nl-amber">{{ newsletterStats().drafts }}</div>
+							<div class="nl-stat-lbl">Drafts</div>
+						</div>
+						<div class="nl-divider"></div>
+						<div class="nl-stat-item">
+							<div class="nl-stat-val nl-blue">{{ newsletterStats().totalViews | number }}</div>
+							<div class="nl-stat-lbl">Total Views</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Blog Categories Chart -->
+				@if (chartBars().length > 0) {
+					<div class="panel">
+						<div class="panel-head">
+							<div class="panel-title">
+								<span class="panel-icon">📊</span>
+								Blog by Category
+							</div>
+						</div>
+						<div class="chart-body">
+							@for (bar of chartBars(); track bar.label) {
+								<div class="chart-row">
+									<div class="chart-label">{{ bar.label }}</div>
+									<div class="chart-track">
+										<div class="chart-bar"
+											 [style.width.%]="bar.pct"
+											 [style.animation-delay]="$index * 80 + 'ms'">
+										</div>
+									</div>
+									<div class="chart-val">{{ bar.value }}</div>
+								</div>
+							}
+						</div>
+					</div>
+				}
+
+				<!-- Activity Feed -->
+				<div class="panel">
+					<div class="panel-head">
+						<div class="panel-title">
+							<span class="panel-icon">🕐</span>
+							Recent Activity
+						</div>
+					</div>
+					<div class="feed-list">
+						@for (item of feed(); track $index) {
+							<div class="feed-row">
+								<div class="feed-av" [style.background]="item.color">
+									{{ item.initials }}
+								</div>
+								<div class="feed-info">
+									<div class="feed-title">{{ item.title }}</div>
+									<div class="feed-sub">
+										<span class="feed-type">{{ typeIcon(item.type) }} {{ typeLabel(item.type) }}</span>
+										<span class="feed-dot">·</span>
+										<span class="feed-time">{{ item.time }}</span>
+									</div>
+								</div>
+								<span class="badge" [class]="item.badgeClass">{{ item.badge }}</span>
+							</div>
+						}
+					</div>
+				</div>
+
+			</div>
+		</div>
+	}
+
+</div>
