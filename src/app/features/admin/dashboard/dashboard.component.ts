@@ -53,7 +53,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 	});
 
 	readonly quickActions = [
-		{ label: 'New Blog Post',  icon: '✍️', route: '/admin/blog',         color: '#3b82f6', bg: '#eff6ff' },
+		{ label: 'New Blog Post',  icon: '✍️', route: '/admin/blogs',         color: '#3b82f6', bg: '#eff6ff' },
 		{ label: 'New Newsletter', icon: '📰', route: '/admin/newsletter',   color: '#8b5cf6', bg: '#f5f3ff' },
 		{ label: 'View Messages',  icon: '💬', route: '/admin/messages',     color: '#10b981', bg: '#ecfdf5' },
 		{ label: 'Manage Users',   icon: '👥', route: '/admin/users',        color: '#f59e0b', bg: '#fffbeb' },

@@ -686,10 +686,10 @@ import {AuthService} from '../../../shared-services/api-service/auth.service';
 					}
 
 					<!-- Footer -->
-					<p class="form-footer">
-						Don't have an account?
-						<a routerLink="/auth/register">Create one</a>
-					</p>
+<!--					<p class="form-footer">-->
+<!--						Don't have an account?-->
+<!--						<a routerLink="/auth/register">Create one</a>-->
+<!--					</p>-->
 
 				</div>
 			</div>
